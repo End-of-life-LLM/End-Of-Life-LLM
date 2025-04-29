@@ -15,6 +15,7 @@ class WebArticleFetcher:
     
     def __init__(self, save_directory: str = "articles", 
                  max_results: int = 5,
+                 result_found: int = 0,
                  delay_between_requests: float = 1.0):
         """
         Initialize the WebArticleFetcher.
@@ -27,6 +28,7 @@ class WebArticleFetcher:
         self.save_directory = save_directory
         self.max_results = max_results
         self.delay = delay_between_requests
+        self.result_found = result_found  # Initialize the number of results found
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
@@ -34,9 +36,7 @@ class WebArticleFetcher:
         # Create save directory if it doesn't exist
         if not os.path.exists(save_directory):
             os.makedirs(save_directory)
-            print(f"Created directory: {save_directory}")
-
-   
+            print(f"Created directory: {save_directory}")   
     
     def search(self, query: str, page=1, exclude_urls=None) -> List[Dict[str, str]]:
         """
@@ -52,10 +52,7 @@ class WebArticleFetcher:
         """
         try:
             # Calculate offset for pagination
-            offset = (page - 1) * self.max_results
-            
-            print(f"Searching Google Scholar for: {query} (Page {page})")
-            
+            offset = (page - 1) * self.max_results            
             # Create a search query
             search_query = scholarly.search_pubs(query)
             
@@ -71,9 +68,8 @@ class WebArticleFetcher:
             
             # Get results
             search_results = []
-            count = 0
+            count = self.result_found  # Start counting from the number of results already found
             
-            print(f"Starting to collect results after skipping {offset} articles")
             
             # Collect the requested number of results
             while count < self.max_results:
@@ -108,9 +104,9 @@ class WebArticleFetcher:
                         'url': url,
                         'title': title
                     })
-                    
-                    print(f"Found article {count+1}: {title} - {url}")
                     count += 1
+                    print(f"Found article {count}: {title} - {url}")
+                    
                     
                     # Small delay to avoid rate limiting
                     time.sleep(0.5)
@@ -122,7 +118,6 @@ class WebArticleFetcher:
                     print(f"Error processing result: {e}")
                     continue
             
-            print(f"Found {len(search_results)} articles from Google Scholar")
             return search_results
             
         except Exception as e:
@@ -132,149 +127,117 @@ class WebArticleFetcher:
    
     def fetch_article(self, url: str) -> Optional[str]:
         """
-        Fetch the content of an article from the given URL,
-        focusing on extracting only the relevant content and handling paywalls.
+        Fetch the content of an article from the given URL by checking all tags for substantial content.
         
         Args:
             url: URL of the article to fetch
-            
+                
         Returns:
-            The article content as a string, or None if fetching failed or behind paywall
+            The article content as a string, or None if fetching failed
         """
         try:
             print(f"Fetching article from: {url}")
             
-            # Try using newspaper3k for better content extraction
-            try:                
-                article = Article(url)
-                article.download()
-                article.parse()
-                
-                # If newspaper extracted decent content, use it
-                if article.text and len(article.text) > 500:
-                    print(f"Successfully extracted article using newspaper3k: {len(article.text)} characters")
-                    return article.text
-                    
-                # Otherwise fall back to BeautifulSoup
-                print("Content extraction with newspaper3k insufficient, falling back to BeautifulSoup")
-                
-            except (ImportError, ArticleException) as e:
-                print(f"newspaper3k not available or failed: {e}")
-            
-            # Fallback: Use requests + BeautifulSoup
+            # Fetch the page content
             response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             
-            # Check if we hit a paywall - common indicators
-            paywall_indicators = [
-                'Subscribe to read', 'Sign in to access', 'Subscribe now',
-                'Pay to access', 'Purchase this article', 'Login to view',
-                'Access to this content requires a subscription', 'Access options',
-                'Sign in for full access', 'This content is only available to subscribers',
-                'To continue reading', 'Access this article'
-            ]
-            
-            text_content = response.text.lower()
-            if any(indicator.lower() in text_content for indicator in paywall_indicators):
-                print(f"Detected potential paywall at {url}")
-                
-                # Check if we have enough content despite the paywall
-                soup = BeautifulSoup(response.text, 'html.parser')
-                main_text = soup.get_text(strip=True)
-                
-                # If content is very short, likely blocked by paywall
-                if len(main_text) < 2000:  # Arbitrary threshold
-                    print("Content too short, likely behind paywall. Skipping.")
-                    return None
-                
-                print("Found enough content to proceed despite paywall indicators")
-            
-            # Parse the HTML content
+            # Parse the HTML
             soup = BeautifulSoup(response.text, 'html.parser')
             
             # Remove unwanted elements
-            for element in soup(["script", "style", "header", "footer", "nav", "aside", 
-                                "button", ".share", ".social", ".comments", ".related",
-                                ".sidebar", ".ad", ".advertisement", ".popup", ".modal",
-                                ".cookie", ".subscription", ".paywall", ".signin"]):
+            for element in soup.select("script, style, header, footer, nav, aside, .nav, .menu, .banner, .ads, .advertisement, .footer, .header, .sidebar, .comments"):
                 element.extract()
             
-            # Try to identify the abstract or introduction first
-            abstract_sections = soup.find_all(['div', 'section', 'p'], 
-                                            class_=lambda c: c and any(term in str(c).lower() 
-                                                                    for term in ['abstract', 'summary', 'introduction']))
+            # Collect all potential content containers
+            content_containers = []
             
-            # Try to find the main content container
-            main_content = None
-            
-            # Check for scholarly article structure first
-            paper_sections = ['abstract', 'introduction', 'methods', 'results', 'discussion', 'conclusion']
-            for section in paper_sections:
-                elements = soup.find_all(['div', 'section'], 
-                                        class_=lambda c: c and section.lower() in str(c).lower())
-                # If we found any structured sections, we're likely in a scientific paper
-                if elements:
-                    all_sections = []
-                    for section_name in paper_sections:
-                        section_elements = soup.find_all(['div', 'section', 'h1', 'h2', 'h3'], 
-                                                    class_=lambda c: c and section_name.lower() in str(c).lower())
-                        for element in section_elements:
-                            all_sections.append(element.get_text(strip=True))
+            # Function to check if element contains substantial content
+            def has_substantial_content(element):
+                text = element.get_text(strip=True)
+                if not text:
+                    return False
                     
-                    if all_sections:
-                        main_content = '\n\n'.join(all_sections)
-                        break
-            
-            # If we didn't find structured sections, try common content selectors
-            if not main_content:
-                selectors = [
-                    'article', 'main', '.paper', '.publication', '.research-article',
-                    '.post-content', '.entry-content', '.article-content', '.content-body',
-                    '.content', '#content', '.document', '.paper-content'
-                ]
+                # Check for minimum content
+                word_count = len(text.split())
+                char_count = len(text)
                 
-                for selector in selectors:
-                    content = soup.select_one(selector)
-                    if content and len(content.get_text(strip=True)) > 200:
-                        main_content = content
-                        break
+                return word_count >= 50 or char_count >= 250
             
-            # If still no specific content container found, use the body
-            if not main_content:
-                main_content = soup.body or soup
+            # Look for containers with substantial content
+            for tag in soup.find_all(['div', 'article', 'section', 'main', 'p', 'span']):
+                if has_substantial_content(tag):
+                    content_containers.append(tag)
             
-            # Get text content
-            if isinstance(main_content, str):
-                article_text = main_content
-            else:
-                article_text = main_content.get_text()
+            # Keep containers in their original document order - no sorting
             
-            # Clean up whitespace and formatting
-            lines = (line.strip() for line in article_text.splitlines())
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            article_text = '\n'.join(chunk for chunk in chunks if chunk)
+            # If no substantial containers found, return None
+            if not content_containers:
+                print("No substantial content found in the article")
+                return ""
             
-            # Additional cleanup
-            # Remove excessive newlines
+            # Prioritize containers with article-like structure
+            article_containers = []
+            for container in content_containers:
+                # Check if container has headings and paragraphs (article-like structure)
+                headings = container.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+                paragraphs = container.find_all('p')
+                
+                if (headings and paragraphs) or len(paragraphs) >= 3:
+                    article_containers.append(container)
+            
+            # Use the best container - prefer article-like structures, or fall back to the longest content
+            target_container = article_containers[0] if article_containers else content_containers[0]
+            
+            # Extract all content elements from the target container
+            content_elements = target_container.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'])
+            
+            # If few elements found, try to get all text-containing elements
+            if len(content_elements) < 3:
+                # Get all elements with text
+                all_elements = target_container.find_all()
+                content_elements = [elem for elem in all_elements if elem.get_text(strip=True) 
+                                and not elem.name in ['script', 'style', 'meta', 'link']]
+            
+            # Build the article text
+            article_parts = []
+            for elem in content_elements:
+                text = elem.get_text(strip=True)
+                if not text:
+                    continue
+                    
+                if elem.name and elem.name.startswith('h'):
+                    article_parts.append(f"\n\n{text}\n")
+                else:
+                    article_parts.append(text)
+            
+            article_text = '\n\n'.join(article_parts)
             article_text = re.sub(r'\n{3,}', '\n\n', article_text)
-            # Remove citation numbers and brackets often found in academic papers
-            article_text = re.sub(r'\[\d+[,\s]*\d*\]', '', article_text)
-            # Remove excessive spacing
-            article_text = re.sub(r'\s{2,}', ' ', article_text)
             
-            print(f"Extracted article text: {len(article_text)} characters")
-            
-            # If article is too short, it might be behind a paywall or extraction failed
+            # Final check to ensure we have enough content
             if len(article_text) < 500:
-                print("Extracted content too short, may be behind paywall or not a proper article")
-                return None
+                # If main approach failed, fallback: get text from any tag with substantial content
+                all_content = []
+                for tag in soup.find_all():
+                    if tag.name not in ['script', 'style', 'meta', 'link', 'head'] and has_substantial_content(tag):
+                        text = tag.get_text(strip=True)
+                        all_content.append(text)
                 
+                if all_content:
+                    article_text = '\n\n'.join(all_content)
+                    article_text = re.sub(r'\n{3,}', '\n\n', article_text)
+                else:
+                    print("Extracted content too short, may be behind paywall or not a proper article")
+                    return ""
+                    
+            print(f"Successfully extracted article: {len(article_text)} characters")
             return article_text
             
         except Exception as e:
-            print(f"Error fetching article from {url}: {e}")
-            return None
-    
+            print(f"Error fetching article: {e}")
+            traceback.print_exc()
+            return ""
+   
     def save_article(self, title: str, content: str, url: str, format: str = "file") -> Union[str, None]:
         """
         Save the article content along with its source URL.
@@ -299,11 +262,11 @@ class WebArticleFetcher:
         filepath = os.path.join(self.save_directory, f"{filename}.txt")
 
         try:
-            print(f"Saving article to: {filepath}")
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(f"Source: {url}\n\n")  # Add source URL at the top
                 f.write(content)
-            print(f"Successfully saved article: {len(content)} characters")
+            print(f"Successfully saved article")
+            self.result_found += 1  # Increment the count of valid articles found
             return filepath
         except Exception as e:
             print(f"Error saving article: {e}")
@@ -322,7 +285,7 @@ class WebArticleFetcher:
             List of dictionaries containing article information
         """
         results = []
-        articles_found = 0  # To track the number of valid articles found
+        articles_found = self.result_found  # To track the number of valid articles found
         processed_urls = set()  # Track URLs we've already processed
         search_page = 1  # To keep track of search result pages
         start_time = time.time()  # Record the start time
@@ -331,7 +294,7 @@ class WebArticleFetcher:
             # Check if we've exceeded the time limit
             elapsed_time = time.time() - start_time
             if elapsed_time > time_limit_seconds:
-                print(f"\nTime limit of {time_limit_seconds} seconds reached. Stopping search.")
+                print(f"\nT ime limit of {time_limit_seconds} seconds reached. Stopping search.")
                 break
                 
             print(f"\nSearching for articles: {text} (Found {articles_found}/{self.max_results}) - Page {search_page}")
@@ -366,7 +329,7 @@ class WebArticleFetcher:
                 processed_urls.add(result['url'])
                 new_results_found = True
                 
-                print(f"\nProcessing article {i+1}/{len(search_results)}: {result['title']}")
+                print(f"\nProcessing article {i+1}/{len(search_results)}")
                 
                 # Fetch the article content
                 article_content = self.fetch_article(result['url'])
@@ -382,14 +345,12 @@ class WebArticleFetcher:
                         'file_path': saved_result if save_format == 'file' else None
                     })
                     articles_found += 1  # Increment the count of valid articles
-                    print(f"Successfully saved article ({articles_found}/{self.max_results})")
                     
                 else:
-                    print(f"Insufficient content for: {result['title']}, skipping this article.")
+                    pass
                 
                 # Delay to avoid overloading servers
                 if i < len(search_results) - 1 and articles_found < self.max_results:
-                    print(f"Waiting {self.delay} seconds before next request...")
                     time.sleep(self.delay)
             
             # If there are no new results or we've tried all results, move to the next page
@@ -412,21 +373,13 @@ class WebArticleFetcher:
  
 # Initialize the fetcher
 fetcher = WebArticleFetcher(
-    max_results = 2,  # Limit to 3 articles
+    max_results = 3,  # Limit to 3 articles
     save_directory="articles",
     delay_between_requests=2.0  # Be gentle with the servers
 )
 
 # Search for articles, fetch and save them
-query = "social media and mental health"  # Example query
+query = "Electrical components Life cycle"  # Example query
 # ENd of life bla bla bla 
 # Finding for recycling material 
-results = fetcher.fetch_and_save_related_articles(query, time_limit_seconds=60)
-
-# Print results
-print("\nSummary of retrieved articles:")
-for i, result in enumerate(results):
-    print(f"\nArticle {i+1}:")
-    print(f"Title: {result['title']}")
-    print(f"URL: {result['url']}")
-    print(f"Saved to: {result['file_path']}")
+results = fetcher.fetch_and_save_related_articles(query, time_limit_seconds=3000)
