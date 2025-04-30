@@ -1,0 +1,189 @@
+Source: https://link.springer.com/article/10.1065/lca2006.08.263
+
+
+
+Electrical and electronic components in the automotive sector: Economic and environmental assessment
+
+Abstract
+
+Background, Aims and Scope
+
+Automotive electrical and electronic systems (EES) comprise an area that has grown steadily in importance in the past decade and will continue to gain relevance in the foreseeable future. For this reason, the SEES project (Sustainable Electrical & Electronic System for the Automotive Sector) aims to contribute to cost-effective and eco-efficient EES components. Scenarios for the recovery of automotive EES are defined by taking into consideration the required improvements in EES design and the development and implementation of new technologies. The research project SEES is funded by the European Commission (Contract no. TST3-CT-2003-506075) within the Sixth Framework Programme, priority 6.2 (see 〈www.sees-project.net〉 for more information). This paper presents the findings of an assessment of the environmental and economic improvements for automotive EES from a system perspective, taking into account all life cycle steps.
+
+Methods
+
+Life Cycle Assessment (LCA) and Life Cycle Costing (LCC) case studies have been employed within the SEES project to define optimum design and end-of-life scenarios. These case studies have been applied to two selected EES components: an engine wire harness and a smart junction box, both manufactured by LEAR and assembled in an existing Ford car model. The component design has a significant impact on the product system and its processes, including its use and end-of-life (EOL) phase. For each of the analysed components, two potential design alternatives have been compared with the original design, based on designers’ recommendations from the status quo scenario results. These include the use of alternative wiring systems with a reduced copper content (flat flexible cable), lead-free solder alloys and new fixation mechanisms to facilitate disassembly. The overall EOL scenario determines the technologies of processes that must be modelled within the EOL phase of a product system. The analysed end-of-life scenarios include: status quo car recycling and two alternatives: 1. disassembly for specific EES component recycling; 2. advanced post-shredder recycling of shredding residues. The influences of the different design and EOL treatment scenarios on the LCA and LCC results have been analysed.
+
+Results
+
+The most dominant life cycle phases for the LCA results are manufacturing (including raw material extraction and manufacturing of materials and components) and the use-phase. Similarly, manufacturing was the predominant phase during the LCC study. Disassembly costs were shown to be significant during the EOL phase. Among the analysed design alternatives, the highest environmental improvement potential were gained from the use of alternative wiring systems with reduced weight and copper content, but with slightly increased life cycle costs. Smaller differences of the results were determined for the different end-of-life scenarios.
+
+Discussion
+
+The results of the EOL scenario depend on the component in question. The influence of variations in process data, model choices, e.g. which LCIA model was used for calculating the Human Toxicity Potential (HTP), which inventory data for copper production was used and other variables have been assessed in the sensitivity analysis. The sensitivity analysis demonstrates a strong dependency of results for HTP on the selected model. The presented results are based on a public report of the SEES project. The study has undergone a critical review by an external expert according to ISO 14040, § 7.3.2.
+
+Conclusions
+
+The environmental impacts during the life cycle of the analysed products are generally most strongly influenced by material production and the use phase of the products. In comparison, improvements during the EOL phase have only a very limited potential to reduce environmental impacts. The studied design changes displayed clear environmental advantages for (lighter) flat, flexible cables. Whereas, the lead-free solder design alternatives showed a slight increase in some environmental impact categories. The application of these design changes has been limited in some cases by technical issues.
+
+Recommendations and Perspectives
+
+Focussing only on end-of-life improvements cannot be recommended for automotive EES products. A life-cycle perspective should be utilised for assessing improvements in individual life cycle stages of a product. The presented results will be an input for Eco-design guidelines for automotive EES, to be developed at a later stage within the SEES project.
+
+This is a preview of subscription content,log in via an institutionto check access.
+
+Access this article
+
+Subscribe and save
+
+Buy Now
+
+Price includes VAT (Sweden)
+
+Instant access to the full article PDF.
+
+Institutional subscriptions
+
+Similar content being viewed by others
+
+Sustainable Design: An Integrated Approach for Lightweighting Components in the Automotive Sector
+
+Cost evaluation in design for end-of-Life of automotive components
+
+Development of a Framework Model to Explore the Remanufacturing Feasibility of Automotive Components
+
+Explore related subjects
+
+References
+
+ACEA (2003): European Automobile Manufacturers Association: ACEA members’ key figures 2003 〈http://www.acea.be/ACEA/ACEAKeyfigures03.pdf〉
+
+Deubzer O, Reichl H, Cacho MR, Irasarri L (2004): EFSOT — Next Generation Environmental-Friendly Soldering Technology — Recycling and Resource Consumption 〈www.efsot-europe.info/servlet/is/836/〉
+
+Deubtzer O, Reichl H, Madsen J, Griese H, van der Wel H (2004): Sustainable Use and Restrictions of Metals in the Electronics Industry. Electronics goes Green 2004+, September 6–8, Berlin, Germany
+
+Ebersberger R (1995): Methodik zur Ermittlung der energieoptimierten Nutzungsdauer von Produkten. Dissertation an der Fakultät für Elektrotechnik und Informationstechnik der TU München
+
+Ecoinvent (2004): Swiss Centre for Life Cycle Inventories: Ecoinvent Data v1.2. Joint initiative of the ETH domain and Swiss Federal Offices
+
+European Copper Institute (2001): European Copper Institute: Annual Report 2001, URL 〈http://www.eurocopper.org/eci/archives/docs/ECIAR2001.pdf〉 (May 2005)
+
+Guinée JB, Gorrée M, Heijungs R, Huppes G, Kleijn R, de Koning A, van Oers L, Wegener Sleeswijk A, Suh S, Udo de Haes H, de Bruijn H, van Dùin R, Huijbregts MAJ (2004): Handbook on Life Cycle Assessment. Operational Guide to the ISO Standards. Kluwer Academic Publishers, Dordrecht, xii + 692 pp
+
+Google Scholar
+
+Golm F, Sweeney, Ford DE (2002): Electronics Recycling from a Car Producer’s Perspective. Presentation at the conference Going Green — CARE Innovation 2002, November 25–28, Vienna, Austria
+
+Heijungs R, de Konung A, Ligthart T, Korenromp R (2004): Improvement of LCA Characterization factors and LCA practice for metals. TNO-report R 2004/347, 67 pp
+
+Heijbregts M, Rombouts L, Ragas A, van de Meent D (2005): Human-Toxicological Effect and Damage Factors of Carcinogenic and Noncarcinogenic Chemicals for Life Cycle Impact Assessment. Integrated Environmental Assessment and Management 1(3) 181–244
+
+ArticleGoogle Scholar
+
+ICGS Information Circular (2004): End-of-Life Vehicles (ELV). ICSG/IC/13, May 2004 〈www.icsg.org/News/Infocirculars/ICSGInfoCircularELV.pdf〉
+
+Itsubo N, Noh J, Inaba A (2004): Life Cycle Impact Assessment of Lead-free Solder Considering the Trade-off Relationship between Toxic Impact and Other Impact Categories. Materials Transactions 45(11) 3194–3200
+
+ArticleCASGoogle Scholar
+
+Jolliet O, Margni M, Charles R, Humbert S, Payet J, Rebitzer G, Rosenbaum R (2003): IMPACT 2002+: A New Life Cycle Impact Assessment Methodology. Int J LCA 8(6) 324–330
+
+ArticleGoogle Scholar
+
+Lohse J, Sander K, Wirts M (2001): Heavy Metals in Vehicles II. Final Report. Hamburg: Ökopol — Institut für Ökologie und Politik GmbH, July 2001
+
+Google Scholar
+
+Reinhardt T, Richers U (2004): Entsorgung von Shredderrückständen — Ein aktueller Überblick. Forschungszentrum Karlsruhe in der Helmholtz-Gemeinschaft. Wissenschaftliche Berichte FZKA 6940
+
+Ridge L (1997): EUCAR — Automotive LCA Guidelines — Phase 2. Society of Automotive Engineers (Publication no. 982185)
+
+Schmidt W-P: Life Cycle Costing as Part of Design for Environment — Environmental Business Cases. Int J LCA 8(3) 167–174
+
+SEES D1 Report (2004): Deliverable D1: Integrated Assessment of Automotive EES (URV, TUB, LEAR). Public Report of the SEES project (TST3-CT-2003-506075)
+
+SEES D7 Report (2005): Deliverable D7: Economic and Environmental Assessment (TUB, URV, CIMA, Rhemel). Report of the SEES project (TST3-CT-2003-506075)
+
+SEES (2005): Interim Results of the SEES project 〈www.sees-project.net〉
+
+ZVEI (2002): Lead-free soldering: Materials, Components, Processes. Technological Assessment of the Change-Over Scenario. ProTechnik. ZVEI Series of Publications, Manuals for electrical industrial production 〈http://www.wbc-europe.com/media.php/WBC/Products/PBfree/Leadfree%20soldering%20Manual%20english.pdf?dl=1〉
+
+Download references
+
+Author information
+
+Authors and Affiliations
+
+LEAR Automotive (EEDS) Spain SL, C/Fusters, 54–56, Poligono Industrial, Planta 1, 43800, Valls (Tarragona), Spain
+
+Juan C. Alonso
+
+Department of Systems Environmental Engineering, Technical University of Berlin, Institute for Environmental Engineering, Office Cr 2, Jebensstraße 1, 10623, Berlin, Germany
+
+Julia Dose, Günter Fleischer & André Greif
+
+Technical Department, Rohm and Haas Electronic Materials Europe Ltd., Herald Way, CV3 2RQ, Coventry, UK
+
+Kate Geraghty
+
+SIMPPLE, Av. Països Catalans 15, 1r2a, 43007, Tarragona, Spain
+
+Julio Rodrigo
+
+Ford-Werke GmbH, Henry Ford Straße, E479/W03, 50735, Köln, Germany
+
+Wulf-Peter Schmidt
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+Corresponding author
+
+Correspondence toJulia Dose.
+
+Additional information
+
+ESS-Submission Editor:Dr. Lester Lave (II01@andrew.cmu.edu)
+
+Rights and permissions
+
+Reprints and permissions
+
+About this article
+
+Cite this article
+
+Alonso, J.C., Dose, J., Fleischer, G.et al.Electrical and electronic components in the automotive sector: Economic and environmental assessment.Int J Life Cycle Assess12, 328–335 (2007). https://doi.org/10.1065/lca2006.08.263
+
+Download citation
+
+Received:03 March 2006
+
+Accepted:09 August 2006
+
+Published:09 August 2006
+
+Issue Date:July 2007
+
+DOI:https://doi.org/10.1065/lca2006.08.263
+
+Share this article
+
+Anyone you share the following link with will be able to read this content:
+
+Sorry, a shareable link is not currently available for this article.
+
+Provided by the Springer Nature SharedIt content-sharing initiative
+
+Keywords

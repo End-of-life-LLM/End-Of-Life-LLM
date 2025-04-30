@@ -1,0 +1,191 @@
+Source: https://link.springer.com/article/10.1007/s11367-017-1279-x
+
+
+
+LCA of electricity networks: a review
+
+Abstract
+
+Purpose
+
+The purpose of this article is to realize a review of studies dealing with life cycle assessment of electric grids or their components, in order to put in evidence methodological aspects to be considered with particular attention or requiring further deepening in future researches. After a preliminary bibliographic screening, the review analyses 16 scientific articles.
+
+Methods
+
+The review considers 16 studies which are all based on a life cycle perspective and pays particular attention on some methodological issues such as: functional unit definition, selection of the impact categories, energy mix taken into consideration in order to quantify the environmental impact associated with grid losses, and end of life of grid components. The review considers, also, the analysed studies’ compliance to ISO 14040 recommendations.
+
+Results and discussion
+
+All the 16 studies have a good degree of compliance with ISO 14040. Concerning impact categories selection, the review showed a wide set of impacts taken into consideration: some categories are frequently utilized while others are present only in few studies. The analysis puts in evidence that recycling is a crucial aspect, determining a sensible reduction of impacts, which in some cases can compensate for the total impact of the end-of-life stage. Energy losses have a great influence on the overall impact. Neglecting losses in the valuation of networks or resistive components may be too simplifying, if not even misleading. Selecting a suitable functional unit is not an easy task.
+
+Conclusions
+
+Beyond the specific outcomes, the analysis puts in evidence two general research needs. First, the definition of functional unit: some authors use a very specific functional unit which allows a correct description of the service provided by an electricity network while others use a functional unit allowing easier comparison with other studies. Second, considering the loss relevance and the infrastructure lifespan, an appropriate evaluation of the electricity mix is crucial.
+
+This is a preview of subscription content,log in via an institutionto check access.
+
+Access this article
+
+Subscribe and save
+
+Buy Now
+
+Price includes VAT (Sweden)
+
+Instant access to the full article PDF.
+
+Institutional subscriptions
+
+Similar content being viewed by others
+
+Electric grid reliability research
+
+Life Cycle Assessment of German Energy Scenarios
+
+Life cycle assessment of electricity generation: a review of the characteristics of existing literature
+
+Explore related subjects
+
+References
+
+Audard G, Peuportier B, Schalbart P, Lafragette A (2015) Methodologies for the life cycle assessment. Inspire-Grid – Deliverable 4.2.www.inspire-grid.eu. Accessed October 2016
+
+Arvesen A, Hauan IB, Bolsoy BM, Hertwich EG (2015) Life cycle assessment of transport of electricity via different voltage levels: a case study for Nord-Trondelag county in Norway. Appl Energ 157:144–151
+
+ArticleGoogle Scholar
+
+Berti R, Bonomelli M, Fedeli G (2008) LCA Comparativa di passanti MT per trasformatori di distribuzione MT/BT. Rapporto Ricerca di Sistema RSE 08002080. RSE SpA, Milano.http://www.rse-web.it/documenti/documento/1908. Accessed September 2015
+
+Berti R, de Nigris M (2009) LCA comparative di diverse tipologie di conduttori aerei MT. Rapporto Ricerca di Sistema Cesi Ricerca 08004878, Milano.http://www.rse-web.it/documenti/documento/1904. Accessed September 2015
+
+Blackett G, Savor E, Toy N, Parke GAR, Clark M, Rabjohns B (2008) An evaluation of the environmental burdens of present and alternative materials used for electricity transmission. Build Environ 43(7):1326–1338
+
+ArticleGoogle Scholar
+
+Bumby S, Druzhinina E, Feraldi R, Werthmann D, Geyer R, Sahl J (2010) Life cycle assessment of overhead and underground primary power distribution. Environ Sci Technol 44(14):5587–5593
+
+ArticleCASGoogle Scholar
+
+Davidsson S, Höök M, Wall G (2012) A review of life cycle assessments on wind energy systems. Int J Life Cycle Assess 17:729–742
+
+ArticleCASGoogle Scholar
+
+de Nigris M, Berti R (2008) Applicazione della metodologia LCA a passanti AT. Rapporto Ricerca di Sistema RSE 08002079. RSE SpA, Milano.http://doc.rse-web.it/doc/doc-sfoglia/08002079-1902/08002079-1902.html. Accessed September 2015
+
+EC-JRC (2011) International reference life cycle data system (ILCD) handbook—recommendations for life Cycle impact assessment in the European context. First edition November 2011. EUR 24571 EN. Luxembourg. Publications Office of the European Union
+
+ENTSO-E (2012) Ten year network development plan 2014. European Network of Transmission System Operators for Electricity
+
+ENTSO-E (2014) Ten year network development plan 2014. European Network of Transmission System Operators for Electricity
+
+Garcia R, Marques P, Freire F (2014) Life-cycle assessment of electricity in Portugal. Appl Energ 134:563–572
+
+ArticleCASGoogle Scholar
+
+Hrólfsdóttir HB, Ingólfsdóttir GM, Pálsson M, Valsdóttir IL, Guðmundsson I, Bjarnason Þ, Guðjónsdóttir GM, Bjarnadóttir HJ (2014) Life cycle assessment of the high voltage OHL transmission system in Iceland. C3-211 CIGRÉ General Session, Paris 2014
+
+Harrison GP, Karamanlis S, Ochoa LF (2010) Life cycle assessment of the transmission network in Great Britain. Energ Policy 38(7):3622–3631
+
+ArticleGoogle Scholar
+
+ISO 14040:2006 Environmental management—life cycle assessment—principles and framework. International Organization for Standardization, Geneva
+
+ISO 14044:2006 Environmental management—life cycle assessment—requirements and guidelines. International Organization for Standardization, Geneva
+
+Jones CI, McManus MC (2010) Life-cycle assessment of 11 kV electrical overhead lines and underground cables. Applied Energy. J Clean Prod 18(14):1464–1477
+
+Jorge RS, Hawkins TR, Hertwich EG (2012a) Life cycle assessment of electricity transmission and distribution—part 1: power lines and cables. Int J Life Cycle Assess 17(1):9–15
+
+ArticleCASGoogle Scholar
+
+Jorge RS, Hawkins TR, Hertwich EG (2012b) Life cycle assessment of electricity transmission and distribution—part 2: transformer and substation equipment. Int J Life Cycle Assess 17(2):184–191
+
+ArticleCASGoogle Scholar
+
+Jorge RS, Hertwich EG (2013) Environmental evaluation of power transmission in Norway. Appl Energ 101:513–520
+
+ArticleGoogle Scholar
+
+Jorge RS, Hertwich EG (2014) Grid infrastructure for renewable power in Europe: the environmental cost. Energy 69:760–768
+
+ArticleGoogle Scholar
+
+Kieffel Y, Spinosa A, Laruelle E, Stumpf K (2014) Life cycle assessment and end-of-life management of GIS and AIS. C3-203, CIGRÉ General Session, Paris 2014
+
+Ó Luain C et al. (2004) Life cycle assessment for overhead lines. Cigré TB; WG B2-15, Paris
+
+Turconi R, Simonsen CG, Byriel IP, Astrup T (2013) Life cycle assessment of the Danish electricity distribution network. Int J Life Cycle Assess 19(1):100–108
+
+ArticleGoogle Scholar
+
+Wang A, Beroual A, Mehiri T, Tremouille G (2012) Life cycle assessment on a 765 kV AC transmission system. C3-208, CIGRÉ General Session, Paris 2012
+
+Download references
+
+Acknowledgements
+
+This work has been financed by the Research Fund for the Italian Electrical System decree of Italian Economic Development Ministry November 9th 2012 and following.
+
+Author information
+
+Authors and Affiliations
+
+Sustainable Development and Energy Sources Department, RSE—Ricerca sul Sistema Energetico, Via Rubattino 54, 20134, Milan, Italy
+
+Alessia Gargiulo, Pierpaolo Girardi & Andrea Temporelli
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+Corresponding author
+
+Correspondence toAlessia Gargiulo.
+
+Ethics declarations
+
+Funding
+
+This work has been financed by the Research Fund for the Italian Electrical System decree of Italian Economic Development Ministry November 9th 2012 and following.
+
+Conflict of interest
+
+The authors declare that they have no conflict of interest.
+
+Additional information
+
+Responsible editor: Omer Tatari
+
+Rights and permissions
+
+Reprints and permissions
+
+About this article
+
+Cite this article
+
+Gargiulo, A., Girardi, P. & Temporelli, A. LCA of electricity networks: a review.Int J Life Cycle Assess22, 1502–1513 (2017). https://doi.org/10.1007/s11367-017-1279-x
+
+Download citation
+
+Received:29 June 2016
+
+Accepted:01 February 2017
+
+Published:10 February 2017
+
+Issue Date:October 2017
+
+DOI:https://doi.org/10.1007/s11367-017-1279-x
+
+Share this article
+
+Anyone you share the following link with will be able to read this content:
+
+Sorry, a shareable link is not currently available for this article.
+
+Provided by the Springer Nature SharedIt content-sharing initiative
+
+Keywords

@@ -54,7 +54,7 @@ class WebArticleManager:
                len(results) < self.searcher.max_results):
             
             # Search for articles
-            print(f"Searching page {page} for '{query}'...")
+            print(f"\nSearching page {page} for '{query}'...")
             articles = self.searcher.search(query, page=page, exclude_urls=processed_urls)
             
             if not articles:
@@ -76,7 +76,7 @@ class WebArticleManager:
                     continue
                     
                 processed_urls.add(url)
-                print(f"Processing article: {title}")
+                print(f"\nProcessing article: {title}")
                 
                 # Fetch article content
                 content = self.searcher.fetch_article(url)
@@ -101,6 +101,8 @@ class WebArticleManager:
                     result_info['content'] = content
                     
                 results.append(result_info)
+
+                self.searcher.result_found = len(results)
                 
                 # Check if we've reached the maximum number of results
                 if len(results) >= self.searcher.max_results:

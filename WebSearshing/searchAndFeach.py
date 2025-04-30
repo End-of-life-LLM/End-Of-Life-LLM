@@ -224,57 +224,92 @@ class WebArticleSearcher:
             return article_text
             
         except Exception as e:
-            print(f"Error fetching article: {e}")
-            traceback.print_exc()
+            print(f"Error fetching article")
+            #traceback.print_exc()
             return ""
     
 
-    def search_and_format_results(self, query, page=1):
+    def search_and_format_results(self, query: str, time_limit_seconds: int = 60, page: int = 1) -> str:
         """
         Search for articles on a topic and return the results as a formatted string.
         
         Args:
             query (str): The search query
-            max_results (int): Maximum number of articles to fetch
-            delay (int): Delay between requests in seconds
-            page (int): Page number to search
+            time_limit_seconds (int): Maximum time to search for articles
+            page (int): Initial page number to search
             
         Returns:
             str: Formatted string containing search results with full article content
         """
-        
-        # Search for articles
-        article_dicts = self.search(query, page=page)
-        
-        # Initialize results list and output string
+        # Initialize variables
+        start_time = time.time()
+        processed_urls = set()
         results = []
+        current_page = page
+        
+        # Initialize output string
         output_lines = [f"SEARCH RESULTS FOR: '{query}'", "=" * 50, ""]
         
-        # Loop through each article dictionary and fetch content
-        for article in article_dicts:
-            url = article['url']
-            title = article['title']
+        # Continue searching until we reach time limit or max results
+        while (time.time() - start_time < time_limit_seconds and 
+            len(results) < self.max_results):
             
-            output_lines.append(f"Fetching article: {title}")
+            # Search for articles
+            print(f"\nSearching page {current_page} for '{query}'...")
+            articles = self.search(query, page=current_page, exclude_urls=processed_urls)
             
-            # Fetch the article content
-            content = self.fetch_article(url)
-            
-            if content:
-                output_lines.append(f"Successfully fetched article ({len(content)} characters)")
-                # Store both the content and metadata
+            if not articles:
+                print("No more articles found")
+                break
+                
+            # Process each article
+            for article in articles:
+                # Check time limit
+                if time.time() - start_time >= time_limit_seconds:
+                    output_lines.append("Time limit reached")
+                    break
+                    
+                url = article['url']
+                title = article['title']
+                
+                # Skip already processed URLs
+                if url in processed_urls:
+                    continue
+                    
+                processed_urls.add(url)
+                output_lines.append(f"\nProcessing article: {title}")
+                print("\n")
+                # Fetch article content
+                content = self.fetch_article(url)
+                
+                if not content:
+                    output_lines.append("No valid content found in article")
+                    continue
+                    
+                # Add to results
                 results.append({
                     'title': title,
                     'url': url,
                     'content': content
                 })
-            else:
-                output_lines.append(f"Failed to fetch content from {url}")
-            
-            output_lines.append("")  # Add blank line between articles
+                
+                output_lines.append(f"Successfully fetched article ({len(content)} characters)")
+                
+                self.result_found = len(results)  # Update the number of results found
+
+                # Check if we've reached the maximum number of results
+                if len(results) >= self.max_results:
+                    output_lines.append(f"Reached maximum number of results ({self.max_results})")
+                    break
+                    
+                # Add delay between requests
+                time.sleep(self.delay)
+                
+            # Move to next page
+            current_page += 1
         
         # Print results summary
-        output_lines.append(f"Fetched {len(results)} articles successfully")
+        output_lines.append(f"\nFetched {len(results)} articles in {time.time() - start_time:.2f} seconds")
         output_lines.append("")
         
         # Add full content for each article
@@ -290,4 +325,3 @@ class WebArticleSearcher:
         
         # Join all lines with newlines and return as a single string
         return "\n".join(output_lines)
-
