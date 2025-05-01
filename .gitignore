@@ -1,1 +1,4 @@
 Cloud LLM Implementation/.env
+/UI/node_modules
+UI/package-lock.json
+UI/package.json
