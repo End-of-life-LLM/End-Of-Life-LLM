@@ -60,6 +60,11 @@ body {
 
 
 
+.home{
+    display: flex;
+    flex-direction: column;
+    height: 90vh;
+}
 
 /*sidebar-----------------------------------------------------------------------------------------------*/
 .sidebar {
@@ -144,6 +149,18 @@ body {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
+.new-chat-btn{
+    border: none;
+    background: none;
+    display: flex;
+    justify-content: start;
+    padding-left: 10px;
+    cursor: pointer;
+    padding-top: 10px;
+
+}
+
+
 .sidebar_content {
     flex-grow: 1;
     overflow-y: auto;
@@ -159,4 +176,52 @@ body {
 .sidebar_footer a {
     color: var(--text-color);
     text-decoration: none;
+}
+/*chat container-----------------------------------------------------------------------------------------------*/
+
+.chat-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    max-width: 85%;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    line-height: 1.5;
+}
+
+.user-message {
+    align-self: flex-end;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+}
+
+.bot-message {
+    align-self: flex-start;
+    background-color: var(--secondary-color);
+}
+
+/*the text field-----------------------------------------------------------------------------------------------*/
+
+.input-container {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+}
+.message-input {
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    outline: none;
+    resize: none;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+.message-input:focus {
+    border-color: var(--button-color);
 }

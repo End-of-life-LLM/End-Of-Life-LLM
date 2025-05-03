@@ -1,30 +1,45 @@
-<div class="sidebar">
-    <div class="sidebar_header">
-        <button class="sidebar_toggle_button">
-            <div>
-                <svg width="18" height="18" viewBox="0 0 20 20" class="sidebar_icon">
-                    <path fill-rule="evenodd"
-                        d="M2.5 3C1.67157 3 1 3.67157 1 4.5V15.5C1 16.3284 1.67157 17 2.5 17H17.5C18.3284 17 19 16.3284 19 15.5V4.5C19 3.67157 18.3284 3 17.5 3H2.5ZM2 4.5C2 4.22386 2.22386 4 2.5 4H6V16H2.5C2.22386 16 2 15.7761 2 15.5V4.5ZM7 16H17.5C17.7761 16 18 15.7761 18 15.5V4.5C18 4.22386 17.7761 4 17.5 4H7V16Z">
-                    </path>
-                </svg>
-                <svg width="18" height="18" viewBox="0 0 20 20" class="sidebar_arrow">
-                    <path fill-rule="evenodd"
-                        d="M17.5 2C17.7761 2 18 2.22386 18 2.5V17.5C18 17.7761 17.7761 18 17.5 18C17.2239 18 17 17.7761 17 17.5V2.5C17 2.22386 17.2239 2 17.5 2ZM8.63003 4.66366C8.81578 4.45933 9.13201 4.44428 9.33634 4.63003L14.8363 9.63003C14.9406 9.72479 15 9.85913 15 10C15 10.1409 14.9406 10.2752 14.8363 10.37L9.33634 15.37C9.13201 15.5557 8.81578 15.5407 8.63003 15.3363C8.44428 15.132 8.45934 14.8158 8.66366 14.63L13.2067 10.5L2.5 10.5C2.22386 10.5 2 10.2761 2 10C2 9.72386 2.22386 9.5 2.5 9.5L13.2067 9.5L8.66366 5.36997C8.45934 5.18422 8.44428 4.86799 8.63003 4.66366Z">
-                    </path>
-                </svg>
+<div class="home">
+    <div class="sidebar">
+        <div class="sidebar_header">
+            <button class="sidebar_toggle_button">
+                <div>
+                    <svg width="18" height="18" viewBox="0 0 20 20" class="sidebar_icon">
+                        <path fill-rule="evenodd"
+                            d="M2.5 3C1.67157 3 1 3.67157 1 4.5V15.5C1 16.3284 1.67157 17 2.5 17H17.5C18.3284 17 19 16.3284 19 15.5V4.5C19 3.67157 18.3284 3 17.5 3H2.5ZM2 4.5C2 4.22386 2.22386 4 2.5 4H6V16H2.5C2.22386 16 2 15.7761 2 15.5V4.5ZM7 16H17.5C17.7761 16 18 15.7761 18 15.5V4.5C18 4.22386 17.7761 4 17.5 4H7V16Z">
+                        </path>
+                    </svg>
+                    <svg width="18" height="18" viewBox="0 0 20 20" class="sidebar_arrow">
+                        <path fill-rule="evenodd"
+                            d="M17.5 2C17.7761 2 18 2.22386 18 2.5V17.5C18 17.7761 17.7761 18 17.5 18C17.2239 18 17 17.7761 17 17.5V2.5C17 2.22386 17.2239 2 17.5 2ZM8.63003 4.66366C8.81578 4.45933 9.13201 4.44428 9.33634 4.63003L14.8363 9.63003C14.9406 9.72479 15 9.85913 15 10C15 10.1409 14.9406 10.2752 14.8363 10.37L9.33634 15.37C9.13201 15.5557 8.81578 15.5407 8.63003 15.3363C8.44428 15.132 8.45934 14.8158 8.66366 14.63L13.2067 10.5L2.5 10.5C2.22386 10.5 2 10.2761 2 10C2 9.72386 2.22386 9.5 2.5 9.5L13.2067 9.5L8.66366 5.36997C8.45934 5.18422 8.44428 4.86799 8.63003 4.66366Z">
+                        </path>
+                    </svg>
+                </div>
+            </button>
+            <div class="sidebar_title">
+                <h2>Chat History</h2>
             </div>
-        </button>
-        <div class="sidebar_title">
-            <h2>Chat History</h2>
         </div>
-    </div>
-    <div class="sidebar_content">
-        <p>This is the sidebar content.</p>
-    </div>
-    <div class="sidebar_footer">
-        <h3>
-            <a href="/fine-tuning">finetoning</a>
-        </h3>
+        <button class="new-chat-btn">➕ New Chat</button>
+
+        <div class="sidebar_content">
+            <p>This is the sidebar content.</p>
+        </div>
+        <div class="sidebar_footer">
+            <h3>
+                <a href="/fine-tuning">finetoning</a>
+            </h3>
+        </div>
+
     </div>
 
+    <div class="chat-container">
+        <!-- Messages will be added here dynamically -->
+        <div class="message bot-message">
+            Hello! How can I help you today?
+        </div>
+    </div>
+
+    <div class="input-container">
+        <textarea class="message-input" placeholder="Type your message here..." rows="2"></textarea>
+    </div>
 </div>
