@@ -75,7 +75,7 @@ function createNewChat() {
     chatContainer.innerHTML = '<div class="message bot-message">Hello! How can I help you today?</div>';
 }
 
-// Send message
+// JavaScript Function to Send Message
 function sendMessage() {
     const message = messageInput.value.trim();
     if (!message) return;
@@ -92,19 +92,38 @@ function sendMessage() {
     // Scroll to bottom
     chatContainer.scrollTop = chatContainer.scrollHeight;
     
-    // In a real app, you would send this message to your backend
-    // and then display the response from the AI
-    setTimeout(() => {
-        // Simulate AI response
+    // Send message to Python backend
+    fetch('http://localhost:5000/send_message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: message })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Display response from Python
         const botMessageEl = document.createElement('div');
         botMessageEl.classList.add('message', 'bot-message');
-        botMessageEl.textContent = "This is a placeholder response. In your actual implementation, this would be the response from the ChatGPT API.";
+        botMessageEl.textContent = data.response;
         chatContainer.appendChild(botMessageEl);
         
         // Scroll to bottom
         chatContainer.scrollTop = chatContainer.scrollHeight;
-    }, 1000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Show error message
+        const errorMessageEl = document.createElement('div');
+        errorMessageEl.classList.add('message', 'error-message');
+        errorMessageEl.textContent = "Sorry, there was an error processing your message.";
+        chatContainer.appendChild(errorMessageEl);
+        
+        // Scroll to bottom
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    });
 }
+
 
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');

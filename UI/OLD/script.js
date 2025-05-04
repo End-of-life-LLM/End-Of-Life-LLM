@@ -5,7 +5,6 @@ const chatContainer = document.querySelector('.chat-container');
 const messageInput = document.querySelector('.message-input');
 const toggleSidebarBtn = document.querySelector('.toggle-sidebar');
 const sidebar = document.querySelector('.sidebar');
-const mainContent = document.querySelector('.main-content');
 
 // Sample chat history data
 let chats = [
