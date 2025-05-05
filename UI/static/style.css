@@ -203,17 +203,7 @@ body {
     font-weight: 500;
 }
 
-.sidebar_footer{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 15px;
-}
 
-.sidebar_footer a {
-    color: var(--text-color);
-    text-decoration: none;
-}
 /*chat container-----------------------------------------------------------------------------------------------*/
 
 .chat-container {
@@ -244,8 +234,31 @@ body {
 }
 
 /*the text field-----------------------------------------------------------------------------------------------*/
+.file-input {
+    display: none; /* Hide the default file input */
+}
+
+
+.upload-label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 6px 12px;
+    background-color: #007bff;
+    color: var(--text-color);
+    border-radius: 5px;
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+
 
 .input-container {
+    display: flex;
+    flex-direction: row;
     padding: 20px;
     border-top: 1px solid var(--border-color);
 }

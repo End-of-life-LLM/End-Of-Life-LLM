@@ -93,7 +93,7 @@ function sendMessage() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
     
     // Send message to Python backend
-    fetch('http://localhost:5000/send_message', {
+    fetch('/send_message', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

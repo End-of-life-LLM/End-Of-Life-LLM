@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-        <title>AI</title>
+    <title>AI</title>
 </head>
 
 <body>
@@ -41,11 +41,7 @@
                     <div class="sidebar_content">
                         <p>This is the sidebar content.</p>
                     </div>
-                    <div class="sidebar_footer">
-                        <h3>
-                            <a href="/fine-tuning">finetoning</a>
-                        </h3>
-                    </div>
+                
 
                 </div>
                 <div class="sidebar-closed ">
@@ -72,11 +68,19 @@
                     </div>
                 </div>
 
+
+
                 <div class="input-container">
+                    <label for="file-upload" class="upload-label">+</label>
+                    <input type="file" id="file-upload" class="file-input" multiple>
+
                     <textarea class="message-input" placeholder="Type your message here..." rows="2"></textarea>
                 </div>
+
             </div>
         </div>
+
+
         <footer class="footer">
             <div class="footer-content">
                 <p>&copy; 2025 AI Chat Assistant. Made by Ahmad and Gaith.</p>
