@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Settings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+        }
+        .slider {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .slider-value {
+            width: 50px;
+            text-align: center;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #fileCount {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Settings</h1>
+    
+    <div class="form-group">
+        <label for="apiKey">API Key:</label>
+        <input type="password" id="apiKey" placeholder="Paste your API key here">
+    </div>
+    
+    <div class="form-group">
+        <label for="temperature">Temperature: <span id="temperatureValue">0.7</span></label>
+        <div class="slider-container">
+            <input type="range" id="temperature" class="slider" min="0" max="1" step="0.01" value="0.7">
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="maxTokens">Max Tokens: <span id="maxTokensValue">1000</span></label>
+        <div class="slider-container">
+            <input type="range" id="maxTokens" class="slider" min="100" max="4000" step="50" value="1000">
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="fileUpload">Upload Files:</label>
+        <input type="file" id="fileUpload" multiple>
+        <p>Files selected: <span id="fileCount">0</span></p>
+    </div>
+    
+    <div class="form-group">
+        <label for="urls">URLs (one per line):</label>
+        <textarea id="urls" rows="3" placeholder="Enter URLs here, one per line"></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="timeout">Timeout (seconds): <span id="timeoutValue">30</span></label>
+        <div class="slider-container">
+            <input type="range" id="timeout" class="slider" min="5" max="120" step="5" value="30">
+        </div>
+    </div>
+    
+    <button id="saveButton">Save Settings</button>
+    <button id="homeButton" onclick="window.location.href='/home'">Home</button>
+    
+    <script>
+        // Variables to store settings
+        let settings = {
+            apiKey: "",
+            temperature: 0.7,
+            maxTokens: 1000,
+            files: [],
+            urls: [],
+            timeout: 30
+        };
+        
+        // Update sliders and their displayed values
+        document.getElementById("temperature").addEventListener("input", function() {
+            settings.temperature = parseFloat(this.value);
+            document.getElementById("temperatureValue").textContent = settings.temperature;
+        });
+        
+        document.getElementById("maxTokens").addEventListener("input", function() {
+            settings.maxTokens = parseInt(this.value);
+            document.getElementById("maxTokensValue").textContent = settings.maxTokens;
+        });
+        
+        document.getElementById("timeout").addEventListener("input", function() {
+            settings.timeout = parseInt(this.value);
+            document.getElementById("timeoutValue").textContent = settings.timeout;
+        });
+        
+        // Handle API key
+        document.getElementById("apiKey").addEventListener("change", function() {
+            settings.apiKey = this.value;
+        });
+        
+        // Handle file upload
+        document.getElementById("fileUpload").addEventListener("change", function() {
+            settings.files = this.files;
+            document.getElementById("fileCount").textContent = settings.files.length;
+        });
+        
+        // Handle URLs
+        document.getElementById("urls").addEventListener("change", function() {
+            settings.urls = this.value.split("\n").filter(url => url.trim() !== "");
+        });
+        
+        // Save settings
+        document.getElementById("saveButton").addEventListener("click", function() {
+            // Update all settings one more time to ensure they're current
+            settings.apiKey = document.getElementById("apiKey").value;
+            settings.temperature = parseFloat(document.getElementById("temperature").value);
+            settings.maxTokens = parseInt(document.getElementById("maxTokens").value);
+            settings.timeout = parseInt(document.getElementById("timeout").value);
+            settings.urls = document.getElementById("urls").value.split("\n").filter(url => url.trim() !== "");
+            
+            console.log("Settings saved:", settings);
+            alert("Settings saved successfully!");
+            
+            // Here you could save to localStorage, send to a server, etc.
+            localStorage.setItem("apiSettings", JSON.stringify({
+                apiKey: settings.apiKey,
+                temperature: settings.temperature, 
+                maxTokens: settings.maxTokens,
+                urlCount: settings.urls.length,
+                fileCount: settings.files.length,
+                timeout: settings.timeout
+            }));
+        });
+        
+        // Load settings from localStorage if available
+        window.addEventListener("load", function() {
+            const savedSettings = localStorage.getItem("apiSettings");
+            if (savedSettings) {
+                const parsed = JSON.parse(savedSettings);
+                
+                if (parsed.apiKey) {
+                    document.getElementById("apiKey").value = parsed.apiKey;
+                    settings.apiKey = parsed.apiKey;
+                }
+                
+                if (parsed.temperature) {
+                    document.getElementById("temperature").value = parsed.temperature;
+                    document.getElementById("temperatureValue").textContent = parsed.temperature;
+                    settings.temperature = parsed.temperature;
+                }
+                
+                if (parsed.maxTokens) {
+                    document.getElementById("maxTokens").value = parsed.maxTokens;
+                    document.getElementById("maxTokensValue").textContent = parsed.maxTokens;
+                    settings.maxTokens = parsed.maxTokens;
+                }
+                
+                if (parsed.timeout) {
+                    document.getElementById("timeout").value = parsed.timeout;
+                    document.getElementById("timeoutValue").textContent = parsed.timeout;
+                    settings.timeout = parsed.timeout;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

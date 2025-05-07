@@ -4,6 +4,12 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
+    return render_template("finetuning.html")
+
+
+
+@app.route("/home")
+def Home():
     return render_template("home.html")
 
 
