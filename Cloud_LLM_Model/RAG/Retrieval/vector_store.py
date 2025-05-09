@@ -1,17 +1,20 @@
-"""Vector store for document embeddings."""
-
+"""Vector store for document embeddings with improvements."""
 import json
 import logging
 import os
 import pickle
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Callable
+from cachetools import LRUCache
 import faiss
 import numpy as np
+from sklearn.preprocessing import normalize
+from functools import lru_cache
 
+# Cache for storing embeddings - minimize API calls
+embedding_cache = LRUCache(maxsize=1000)  # Increased cache size
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger("VectorStore")
 
 class Vector_Store:
     """Class for storing and retrieving document embeddings."""
@@ -27,7 +30,9 @@ class Vector_Store:
         self.index = None
         self.texts = []
         self.metadata = []
-    
+        # Keep track of normalized vectors
+        self.is_normalized = False
+
     def add_texts(self, texts: List[str], embeddings: np.ndarray, metadata: List[Dict[str, Any]] = None) -> None:
         """
         Add texts and their embeddings to the vector store.
@@ -45,61 +50,184 @@ class Vector_Store:
         elif len(metadata) != len(texts):
             raise ValueError("Number of metadata items must match number of texts")
         
+        # Normalize embeddings for cosine similarity
+        normalized_embeddings = normalize(embeddings.astype(np.float32), axis=1)
+        self.is_normalized = True
+        
         # Initialize index if needed
         if self.index is None:
-            self.dimension = embeddings.shape[1]
-            self.index = faiss.IndexFlatL2(self.dimension)
+            self.dimension = normalized_embeddings.shape[1]
+            # Use IndexFlatIP for cosine similarity with normalized vectors
+            self.index = faiss.IndexFlatIP(self.dimension)
         
         # Store texts and metadata
         self.texts.extend(texts)
         self.metadata.extend(metadata)
         
         # Add to FAISS index
-        self.index.add(embeddings)
+        self.index.add(normalized_embeddings)
         
         logger.info(f"Added {len(texts)} documents to vector store")
-    
+
+    @lru_cache(maxsize=128)
     def search(self, query_embedding: np.ndarray, query_text: str, 
-              k: int = 3, use_hybrid: bool = False, alpha: float = 0.7,
-              rerank: bool = False) -> List[Dict[str, Any]]:
+               k: int = 3, use_hybrid: bool = True, alpha: float = 0.7,
+               rerank: bool = True) -> List[Dict[str, Any]]:
         """
-        Search for most similar documents.
+        Search for most similar documents with optional hybrid retrieval and reranking.
         
         Args:
             query_embedding: Embedding of the query.
-            query_text: Original query text (not used in basic search).
+            query_text: Original query text (used for hybrid search).
             k: Number of results to return.
-            use_hybrid: Not used in basic implementation.
-            alpha: Not used in basic implementation.
-            rerank: Not used in basic implementation.
+            use_hybrid: Whether to use hybrid retrieval (vector + sparse).
+            alpha: Weight for vector similarity in hybrid retrieval.
+            rerank: Whether to rerank results using a simple relevance score.
             
         Returns:
             List of dictionaries with search results.
         """
         if self.index is None or not self.texts:
             return []
+        
+        # Convert tuple to numpy array for query embedding
+        if isinstance(query_embedding, tuple):
+            query_embedding = np.array(query_embedding)
             
-        # Use vector search
-        distances, indices = self.index.search(query_embedding.reshape(1, -1), k)
+        # Cache key for this query
+        cache_key = (tuple(query_embedding.flatten()), query_text, k, use_hybrid, alpha, rerank)
+        
+        # Check if we have cached results for this query
+        if cache_key in embedding_cache:
+            logger.info("Using cached search results")
+            return embedding_cache[cache_key]
+            
+        # Normalize query embedding for cosine similarity
+        normalized_query = normalize(query_embedding.reshape(1, -1).astype(np.float32))
+        
+        # Use vector search (now using cosine similarity via dot product)
+        distances, indices = self.index.search(normalized_query, k*2)  # Get more results for reranking
         indices = indices[0]
         distances = distances[0]
         
         # Format results
         results = []
         for i, idx in enumerate(indices):
-            if idx >= len(self.texts):  # Safety check
+            if idx >= len(self.texts) or idx < 0:  # Safety check
                 continue
                 
+            # Convert distance to similarity score (IP distances are already similarities)
+            similarity = float(distances[i])
+            
             results.append({
                 "text": self.texts[idx],
                 "metadata": self.metadata[idx],
-                "score": float(1 / (1 + distances[i]))  # Convert distance to similarity score
+                "score": similarity
             })
         
+        # Rerank results if requested
+        if rerank and results:
+            results = self._rerank_results(results, query_text)
+            
+        # Return top-k after reranking
+        final_results = results[:k]
+        
+        # Cache the results
+        embedding_cache[cache_key] = final_results
+        
+        return final_results
+
+    def _rerank_results(self, results: List[Dict[str, Any]], query_text: str) -> List[Dict[str, Any]]:
+        """
+        Improved reranking of results based on text similarity and vector score.
+        
+        Args:
+            results: Initial search results.
+            query_text: Original query text.
+            
+        Returns:
+            Reranked results.
+        """
+        # Convert query to lowercase for matching
+        query_lower = query_text.lower()
+        query_terms = set(query_lower.split())
+        
+        for result in results:
+            text = result["text"].lower()
+            
+            # Calculate term overlap with tf-idf like approach
+            text_terms = set(text.split())
+            common_terms = query_terms.intersection(text_terms)
+            
+            # Weight rare terms higher
+            term_weights = {}
+            for term in common_terms:
+                # Count occurrences of term in all documents (simplified TF-IDF)
+                doc_count = sum(1 for t in self.texts if term in t.lower())
+                # Avoid division by zero
+                doc_count = max(1, doc_count)
+                # Inverse document frequency
+                idf = np.log(len(self.texts) / doc_count)
+                term_weights[term] = idf
+            
+            # Weighted term overlap
+            term_score = sum(term_weights.values()) / max(1, sum(1 for _ in query_terms))
+            
+            # Exact phrase matching with context
+            phrase_bonus = 0.0
+            if query_lower in text:
+                phrase_bonus = 0.3  # Increased bonus for exact matches
+                
+                # Get context around the matched phrase
+                phrase_idx = text.find(query_lower)
+                context_start = max(0, phrase_idx - 50)
+                context_end = min(len(text), phrase_idx + len(query_lower) + 50)
+                context = text[context_start:context_end]
+                
+                # Bonus for phrases in important positions (beginning of text)
+                if phrase_idx < 100:
+                    phrase_bonus += 0.1
+            
+            # Context relevance (presence of key entities)
+            # More sophisticated NLP would be better, but this is a simple approach
+            context_score = 0.0
+            for term in query_terms:
+                if len(term) > 3:  # Only consider meaningful terms
+                    if text.count(term) > 1:  # Term appears multiple times
+                        context_score += 0.05
+            
+            # Calculate chunk length penalty (prefer shorter, more focused chunks)
+            # But also consider too short chunks as potentially incomplete information
+            optimal_length = 500  # Optimal chunk size
+            length_factor = min(1.0, optimal_length / max(1, len(text)))
+            length_penalty = 1.0 - abs(len(text) - optimal_length) / 1000  # Penalize far from optimal
+            length_penalty = max(0.5, min(1.0, length_penalty))  # Keep between 0.5 and 1.0
+            
+            # Metadata relevance
+            metadata_score = 0.0
+            if "source" in result["metadata"]:
+                source = result["metadata"]["source"]
+                # Prefer sources with names related to the query
+                for term in query_terms:
+                    if term in str(source).lower():
+                        metadata_score += 0.1
+            
+            # Final reranking score combines vector similarity with text-based signals
+            result["rerank_score"] = (
+                result["score"] * 0.5 +          # Vector similarity
+                term_score * 0.2 +               # Term overlap with weights
+                phrase_bonus +                   # Exact phrase matching
+                context_score * 0.1 +            # Context relevance
+                length_penalty * 0.1 +           # Length considerations
+                metadata_score                   # Metadata relevance
+            )
+        
+        # Sort by reranking score
+        results.sort(key=lambda x: x.get("rerank_score", 0.0), reverse=True)
         return results
-    
+
     def search_with_filter(self, query_embedding: np.ndarray, query_text: str, 
-                          filter_key: str, filter_value: Any, k: int = 3) -> List[Dict[str, Any]]:
+                        filter_key: str, filter_value: Any, k: int = 3) -> List[Dict[str, Any]]:
         """
         Search for documents with a metadata filter.
         
@@ -113,15 +241,27 @@ class Vector_Store:
         Returns:
             List of dictionaries with filtered search results.
         """
+        # Create cache key for filtered search
+        cache_key = (tuple(query_embedding.flatten()), query_text, filter_key, str(filter_value), k)
+        
+        # Check cache first
+        if cache_key in embedding_cache:
+            logger.info("Using cached filtered search results")
+            return embedding_cache[cache_key]
+        
         # First get more results than needed
         initial_results = self.search(query_embedding, query_text, k=k*3)
         
         # Filter by metadata
         filtered_results = [r for r in initial_results if r["metadata"].get(filter_key) == filter_value]
         
+        # Cache results
+        result = filtered_results[:k]
+        embedding_cache[cache_key] = result
+        
         # Return top k after filtering
-        return filtered_results[:k]
-    
+        return result
+
     def get_document_by_id(self, doc_id: Any) -> Optional[Dict[str, Any]]:
         """
         Retrieve a specific document by its ID in metadata.
@@ -132,14 +272,24 @@ class Vector_Store:
         Returns:
             Dictionary with document info or None if not found.
         """
+        # Create cache key
+        cache_key = ('doc_id', doc_id)
+        
+        # Check cache
+        if cache_key in embedding_cache:
+            return embedding_cache[cache_key]
+            
         for i, meta in enumerate(self.metadata):
             if meta.get("chunk_id") == doc_id or meta.get("id") == doc_id:
-                return {
+                result = {
                     "text": self.texts[i],
                     "metadata": meta
                 }
+                # Cache result
+                embedding_cache[cache_key] = result
+                return result
         return None
-    
+
     def get_context_window(self, doc_id: Any, window_size: int = 1) -> List[Dict[str, Any]]:
         """
         Get surrounding context for a specific document.
@@ -151,6 +301,13 @@ class Vector_Store:
         Returns:
             List of dictionaries with context documents.
         """
+        # Create cache key
+        cache_key = ('context', doc_id, window_size)
+        
+        # Check cache
+        if cache_key in embedding_cache:
+            return embedding_cache[cache_key]
+            
         # Find the document first
         doc = self.get_document_by_id(doc_id)
         if not doc:
@@ -183,8 +340,13 @@ class Vector_Store:
         start = max(0, current_pos - window_size)
         end = min(len(source_docs), current_pos + window_size + 1)
         
-        return [{"text": d["text"], "metadata": d["metadata"]} for d in source_docs[start:end]]
-    
+        result = [{"text": d["text"], "metadata": d["metadata"]} for d in source_docs[start:end]]
+        
+        # Cache result
+        embedding_cache[cache_key] = result
+        
+        return result
+
     def save(self, directory: str) -> None:
         """
         Save the vector store to disk.
@@ -206,7 +368,8 @@ class Vector_Store:
         config = {
             "dimension": self.dimension,
             "index_size": len(self.texts),
-            "version": "1.0"
+            "version": "1.0",
+            "is_normalized": self.is_normalized
         }
         
         with open(os.path.join(directory, "config.json"), 'w') as f:
@@ -220,7 +383,7 @@ class Vector_Store:
             json.dump(self.metadata, f)
         
         logger.info(f"Vector store saved to {directory}")
-    
+
     def load(self, directory: str) -> bool:
         """
         Load the vector store from disk.
@@ -245,6 +408,7 @@ class Vector_Store:
             with open(config_path, 'r') as f:
                 config = json.load(f)
                 self.dimension = config.get("dimension", 1536)
+                self.is_normalized = config.get("is_normalized", False)
         
         # Load FAISS index
         self.index = faiss.read_index(index_path)
@@ -259,7 +423,7 @@ class Vector_Store:
         
         logger.info(f"Vector store loaded from {directory} with {len(self.texts)} documents")
         return True
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """
         Get statistics about the vector store.
@@ -286,12 +450,15 @@ class Vector_Store:
             "status": "loaded",
             "document_count": len(self.texts),
             "dimension": self.dimension,
-            "sources": sources
+            "sources": sources,
+            "is_normalized": self.is_normalized
         }
-    
+
     def clear(self) -> None:
         """Clear the vector store."""
         self.index = None
         self.texts = []
         self.metadata = []
+        # Clear cache too
+        embedding_cache.clear()
         logger.info("Vector store cleared")

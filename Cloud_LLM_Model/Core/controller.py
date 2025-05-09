@@ -3,7 +3,7 @@
 from model import Model
 from supporting_model import Supporting_Model
 from RAG.controller import RAGController
-
+from WebSearshing.webArticleManger import WebArticleManager
 
 class Controller:
     """
@@ -23,3 +23,5 @@ class Controller:
         
         # Initialize RAG system
         self.rag_controller = RAGController(api_key=api_key)
+        #initialize the Article system 
+        self.article_controller = WebArticleManager()

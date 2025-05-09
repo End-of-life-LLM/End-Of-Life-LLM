@@ -1,8 +1,8 @@
 
 import time
 import time
-from searchAndFeach import WebArticleSearcher
-from saveArticles import SaveArticles
+from WebSearshing.searchAndFeach import WebArticleSearcher
+from WebSearshing.saveArticles import SaveArticles
 from typing import List, Dict
 from typing import List, Dict
 
