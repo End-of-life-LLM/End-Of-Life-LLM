@@ -1,0 +1,317 @@
+Source: https://link.springer.com/article/10.1007/s11367-017-1279-x
+
+
+
+LCA of electricity networks: a review
+
+Access provided by Jonkoping University
+
+Abstract
+
+Purpose
+
+The purpose of this article is to realize a review of studies dealing with life cycle assessment of electric grids or their components, in order to put in evidence methodological aspects to be considered with particular attention or requiring further deepening in future researches. After a preliminary bibliographic screening, the review analyses 16 scientific articles.
+
+Methods
+
+The review considers 16 studies which are all based on a life cycle perspective and pays particular attention on some methodological issues such as: functional unit definition, selection of the impact categories, energy mix taken into consideration in order to quantify the environmental impact associated with grid losses, and end of life of grid components. The review considers, also, the analysed studies’ compliance to ISO 14040 recommendations.
+
+Results and discussion
+
+All the 16 studies have a good degree of compliance with ISO 14040. Concerning impact categories selection, the review showed a wide set of impacts taken into consideration: some categories are frequently utilized while others are present only in few studies. The analysis puts in evidence that recycling is a crucial aspect, determining a sensible reduction of impacts, which in some cases can compensate for the total impact of the end-of-life stage. Energy losses have a great influence on the overall impact. Neglecting losses in the valuation of networks or resistive components may be too simplifying, if not even misleading. Selecting a suitable functional unit is not an easy task.
+
+Conclusions
+
+Beyond the specific outcomes, the analysis puts in evidence two general research needs. First, the definition of functional unit: some authors use a very specific functional unit which allows a correct description of the service provided by an electricity network while others use a functional unit allowing easier comparison with other studies. Second, considering the loss relevance and the infrastructure lifespan, an appropriate evaluation of the electricity mix is crucial.
+
+Similar content being viewed by others
+
+Electric grid reliability research
+
+Life Cycle Assessment of German Energy Scenarios
+
+Life cycle assessment of electricity generation: a review of the characteristics of existing literature
+
+Explore related subjects
+
+Avoid common mistakes on your manuscript.
+
+1Introduction
+
+There are many drivers for the expansion of the European electric grid. The main ones are market integration, security of supply, and the increasing share of production coming from renewable energy sources (RES). Moreover, the average distance between generation and load centres is tending to increase, requiring more grids to transport the power further (ENTSO-E2014). This is mainly due to the fact that new generation capacities are also located on new spots compared to the existing ones, for example, where conditions are favourable for RES and near harbour for what concerns new capacity from fossil fuels in Western Europe (ENTSO-E2014). In other words, electricity transmission in Europe in 2020 will be more material intensive, requiring about 10% more metal inputs per kilowatt-hour than today (Jorge and Hertwich2014). Moreover, this expansion will be not only quantitative (more kilometres of conductors) but also qualitative, switching from the traditional electric grid to the so called smart grid paradigm, which enables higher efficiency and security thanks to the integration of information and communication technologies (ICT) into the electric grid.
+
+Of course, this new equipment, throughout lifetime, will originate impacts mainly related to power losses during the use phase, but other life cycle stages such as installation, maintenance, and dismantling could also contribute significantly to some impact categories (Jorge and Hertwich2013). For example, transmission network infrastructure comprises substantial volumes of materials that consume energy and emit carbon dioxide (and air pollutant) during their manufacture and installation (Harrison et al.2010). Hence, if building a grid for renewables will help Europe in achieving its climate goals, other resulting environmental impacts have not yet been quantified (Jorge and Hertwich2014) and could raise other relevant environmental issues. Life cycle assessment can help to better understand the environmental burdens of this grid expansion and support decision makers in selecting the more suitable solutions. In fact, rather than focusing only on some environmental impacts such as waste production or emissions created at the manufacturing stage of a product, life cycle assessment (LCA) goes much further in determining all the environmental burdens created through the entire life cycle of a product (Blackett et al.2008). Good decisions on how to construct future energy systems rely on having access to suitable feasibility indicators for different options, so that one can pinpoint the most optimal pathway and this underlines a need for meticulous environmental impact assessments (Davidsson et al.2012). In this framework, it seems useful to have a reference on how to conduct a LCA of electric grids and electric grid components. The goal of this paper is precisely to give a methodological support to LCA researchers and practitioners who are going to carry out LCA of electric grids or grid components. To this end, a review of existing literature on how LCA studies are used to analyse the environmental impacts of electric grid and electric grid components has been carried out. The main focus is not only on the methodological approach adopted and on its adherence to ISO 14040 and ILCD (EC-JRC2011) recommendation but also on impact assessment results. Although the main drivers for this paper is the foreseeable modernization of the European electric grid, studies from all over the world have been considered and conclusion are valid also for LCA studies referred to other than European countries.
+
+2Electric grid in brief
+
+An electrical grid is an interconnected network delivering electricity from producers (power plants) to consumers. It consists in the transmission grid and the distribution grid. The transmission grids move power for long distances, from power station to electric substation. Transmission grids are operated at high voltage (approximately 60–400 kV). They are mainly composed of power lines (overhead lines and underground cables) and substations. Transmission line main components are conductors, insulators, and pylons. Transmission substations may be very simple or very complex. The main function of a transmission substation is to connect different voltage levels within the transmission grid or from transmission grid to distribution grid. To this end, transmission substations have transformers to convert between different voltage levels, voltage control or power factor correction devices such as capacitors or reactors, and equipment such as phase-shifting transformers to control power flow between two adjacent power systems. The electricity is then delivered to consumers by the distribution network. Distribution grid consists of power lines and electrical substations just like transmission network. Of course, each power line covers shorter distance compared to transmission lines. It is operated at different voltage levels, from medium voltage (1–35 kV) to utilization voltage (usually 200–1000 V).
+
+3Methodology
+
+3.1Inclusion of literature
+
+A review of scientific papers (peer-reviewed papers found in established scientific journals), conference papers (all published by CIGRE—Council on Large Electric Systems,www.cigre.org—in consideration of the importance of this institute in the field of electric power systems management), and research reports of the Italian Electrical Research Funds (Ricerca di Sistema) has been conducted.
+
+Among the explored 20 studies, four papers have been disregarded because they are considered too far from the methodological standard ISO 14040 (ISO2006). The remaining 16 studies, all dealing with life cycle assessment of transmission or distribution grid, can be sorted into three categories according to their system boundaries.
+
+The first category includes eight papers dealing with specific components of an electricity network: Berti et al. (2008) develop a comparative LCA of two different insulators for transformers; Berti and de Nigris (2009) compare environmental performances of four different typologies of overheads lines; Blackett et al. (2008) compare two typologies of towers, conductors, and insulators; de Nigris and Berti (2008) compare different insulators for high voltage systems; Jones and McManus (2010) assess the impacts of different conductors for electricity distribution on medium voltage networks; Jorge et al. (2012a) conduct an LCA of lines and cables; Jorge et al. (2012b) focus the attention on transformers and substation equipment; and Kieffel et al. (2014) apply LCA for eco-design of components, such as gas-insulated switchgears and live tank circuit breakers.
+
+The second group includes six studies dealing with the whole transmission or distribution system: Bumby et al. (2010), Hrólfsdóttir et al. (2014), Jorge and Hertwich (2013), Jorge and Hertwich (2014), Wang et al. (2012), and Turconi et al. (2013).
+
+Finally, the last group includes two studies containing the life cycle assessment of the electricity generation phase, i.e. the power system: Arvesen et al. (2015) and Garcia et al. (2014).
+
+Generally, the studies dealing with specific components of electricity networks are aimed at a comparative LCA (Blackett et al.2008; Kieffel et al.2014; Berti et al.2008; de Nigris and Berti2008; Berti and de Nigris2009; Jones and McManus2010), i.e. they compare the environmental performance of two or more technologies. Also in Bumby et al. (2010), concerning the whole distribution system, a comparative LCA of overhead and underground systems is performed.
+
+From a technology point of view, the reviews cover both distribution and transmission system, with a wide range of voltage levels taken into account: Bumby et al. (2010) and Turconi et al. (2013) analyse only the distribution network (medium voltage), while in the studies carried out by Hrólfsdóttir et al. (2014), Jorge and Hertwich (2013), Jorge and Hertwich (2014), and Wang et al. (2012), the target is the transmission system at different voltage levels or ranges (respectively 6, 132, 220, and 400; 132–420; 200–450; 765 kV). In Garcia et al. (2014), which involves, as above mentioned, the whole electric system from generation to distribution, both transmission and distribution grids are evaluated (voltage levels 150–400 and <60 kV). Likewise, Arvesen et al. (2015) take into account Norwegian local distribution (11 and 22 kV), regional transmission (66 and 132 kV), and main transmission (132, 300 and 420 kV) grids.
+
+3.2Review approach
+
+The starting point and principal goal of this review is to identify critical methodological aspects concerning LCA of electricity networks, to be considered with particular attention or requiring further deepening in future researches.
+
+First of all, we focused on the conformity to ISO 14040 and ISO 14044 (ISO 140402006; ISO 140442006), with particular reference to methodological issues such as goal and scope definition, selection of functional unit, and selection of impact categories. On the basis of recommendation provided by the Cigré’s technical brochure on LCA of overhead lines (Ó Luain et al.2004), special attention was given to the approaches adopted in the studies for modellingelectrical lossesandend of lifeof components, in view of their relevance on the environmental impacts of electricity networks.
+
+Finally, we investigated the impact assessment results of the selected studies by analysing their discussions and conclusions especially concerning the influence of the different life cycle stages and processes on the overall impact and the results of sensitivity analysis, when performed.
+
+4Results of literature analysis
+
+Table1summarizes the analysed papers. Specifically, it contains information about the functional unit declared in the study, the electricity mix used to model grid losses, the phase of the life cycle which presents the major contribution to the overall impacts, the parameters considered in the sensitivity analysis (when performed), and whether or not the conclusions of the study give evidence to the importance of recycling of components at the end of life. These aspects, together with others (e.g. selection of impact categories), are discussed in the following paragraphs.
+
+4.1Goal and scope
+
+The goal and scope is the first phase in a life cycle assessment in which the study to be carried out is described. When defining the goal of an LCA, it is necessary to clearly refer to the intended application and to the target. On the basis of the defined goal, the system boundary, the functional unit, and the impact assessment categories are determined. Methodological assumptions or choices about, for example, allocation procedure or cut-off rules and the aspects concerning limitations of the study or data quality shall be described in this phase, too.
+
+In all the analysed papers, the goal is clearly declared. In some cases, the type of application (e.g. comparative LCA or products eco-design) is specified, while only in a few studies, the decision context and the target are explicitly indicated.
+
+Concerning the scope, all the papers specify the functional unit and the system boundaries and detail the stages included in the life cycle. Most of them report in detail the excluded process, too. On the other hand, in the majority of the studies, cut-off rules are not specified. There are only three exceptions: Wang et al. (2012) which detail the cut-off rule adopted in the result analysis aimed to compare the use stage of different components; the paper “Life cycle assessment of transport of electricity via different voltage levels: a case study for Nord-Trøndelag county in Norway” (Arvesen et al.2015) where the adoption of cut-off allocation in the open loop recycling process is specified; and Turconi et al. (2013), which use cut-off rules for some equipment, such as switchgears and circuit breakers, according to the literature. Only three works (Berti et al.2008; de Nigris and Berti2008; Berti and de Nigris2009) explicitly report that no cut-off criteria have been applied.
+
+With the exception of Blackett et al. (2008) and Berti et al. (2008), all the studies consider the whole life cycle from cradle to grave. Blackett et al. (2008) (comparative LCAs between two typologies of tower, two typologies of insulators, and two typologies of conductors) exclude the end-of-life phase but perform sensitivity analysis assuming different recycling rates for both towers and conductors. In the study concerning the LCA of two different insulators for transformers (Berti et al.2008), only construction and end of life are included in the life cycle, since it is assumed that during the use phase, the equipment does not need maintenance or substitution and that no losses occur.
+
+As regards data quality, all the studies use a mix of primary and secondary data (generally employed for the back ground system). Primary data mainly come from EPD (Environmental Product Declaration), producers of the specific component (e.g. Hrólfsdóttir et al.2014) or electricity network operators (e.g. Jorge and Hertwich2014).
+
+Except Bumby et al. (2010), the studies do not provide detailed information about allocation procedure. With specific reference to recycling of materials, however, all examined papers give indication on the adopted assumptions, including the recycling percentages of specific materials, while in three of them (Bumby et al.2010; Wang et al.2012; de Nigris and Berti2008), the allocation procedure (avoided burden) is explicitly declared.
+
+4.2Functional unit definition
+
+The definition of the functional unit emerges as an aspect far from being trivial. The analysed studies, even when referred at a similar system product (e.g. transmission or distribution system as a whole), use different functional units.
+
+Among the studies focused on specific components of electricity networks, some, suitably, use as functional unit the function performed by the component with specific technical characteristics. Kieffel et al. (2014), Berti et al. (2008), and de Nigris and Berti (2008) use, respectively, “To protect and to insulate a 72.5kV electric network during 40 years in Europe”, “The insulation of MV conductors from the tank of a 400kVA transformer insulated with oil-paper”, and “The connection of electrical equipment to the network, shielding the conductor from the external environment and ensuring the electrical insulation from ground potential”. Indeed, Blackett et al. (2008) define the functional unit as the amount of materials required for the construction of the specific component whose eco-profile is analysed (“Masses of galvanised steel and anodised aluminium required to construct a tower for the 85-year period; Material required for one conductor, 10 km in length, to operate for the National Grid standard of 40 years; Input required for one insulator string also to operate effectively for 40 years”). Such definition seems to be not fully meaningful, since it refers to materials utilized for the product system rather than the product system itself, even if the impact assessment results are then expressed in relation to the product (e.g. in relation to “steel tower” or “aluminium tower”). Other papers report as functional unit one device operating during its lifetime (Jorge et al.2012b) or a unit of length of the transmission or distribution cables, as for example “1 km of electrical line or cable during the entire life” (Jorge et al.2012a).
+
+When the goal is the assessment of impacts linked to electricity supply to final users, the functional unit corresponds to one unit of electricity delivered (e.g. 1 kWh electricity), while generally it refers to the function of transmitting and/or distributing electricity, in those studies focusing exclusively on the grid (which exclude the electricity generation). More precisely, the functional unit is described detailing the whole specific system to be analysed as, for example, in Wang et al. (2012) (“transmitting 8000MW hydro-electrical power through 760 km to this country’s load centres, under an average power factor of 60 %, during a service life of 60 years”). Otherwise, it is expressed in relation to a generic unit of distance covered by the network, as in Bumby et al. (2010) (“The distribution of MV power in one circuit over one mile and for one year”) or to the unit of transmitted electricity as in Hrólfsdóttir et al. (2014) (“1kWh electricity transmitted in the 66, 132, 220 and 400kV OHL transmission system and lifetime of the system is defined as 60 years”) or in Jorge and Hertwich (2013) (“1kWh of electricity delivered from the Sentralnett to the main distribution grid”). As mentioned above, the cited examples show how, even in case of similar analysed objects (the distribution or transmission system as a whole), the declared functional units may differ to some extent. Far from providing an indication about which can be the most appropriate choice in absolute, some considerations about functional unit definition in the LCA of electricity network may be made. First of all, although referring to a measure of the distance covered by the network makes it easier to compare the results of different applications, it might entail, on the other hand, some critical points (in particular in the case of distribution networks). The function of an electricity network consists, in fact, in connecting a group of users regardless of the distance and the path, which may depend on several factors. For example, a smart grid may perform more efficiently (using less energy and less kilometres of conductors) the function inherent to it, that is the distribution of electricity to a certain numbers of users. This consideration become really important when the aim is to compare different systems or solutions and it could be more appropriate, in such situations, to use as functional unit 1 kWh distributed or transmitted by the network. Furthermore, especially in the case of comparative LCAs, which can provide indication on the environmental performances of alternative systems (e.g. overhead lines vs underground lines), when referring to a generic length (e.g. 1 km of MV line), it is important to take into account (or at least to point out) that topography may have an influence on the results. In other words, it is suitable to clarify if the LCA takes into account a specific geographic configuration of the lines and the orography or the topographic barriers related to it, which could significantly change the results. This issue is well specified by Bumby et al. (2010): “All process types and activity levels were estimated for one mile of straight circuit with no topographical barriers and no unusual obstacles for installation, such as roads, hard rocks, hills, or corners. In many cases, geological, terrain, and land use conditions will affect the quantity of infrastructural components needed and energy required for installation, which may significantly change the relative impacts of the two systems”.
+
+A particular example of functional unit definition can be found in the study published by Jorge and Hertwich (2014), aimed at characterizing the life cycle environmental consequences of upgrading the current European power grid, as required for the integration of intermittent renewable power. The European Network of Transmission System Operators estimates that 45,300 km of new or upgraded lines will be built over the next decade to accommodate the renewable power sources. The LCA of the transmission grid expansion is performed on this basis. The functional unit coincides with the product system consisting of OHLs, land/subsea cables, and substation equipment, as described in the Ten Year Network Development Plan 2012 (ENTSO-E2012). Such a specific functional unit is required in consideration of the declared goal and of the complexity of the object of analysis, consisting of 427 grid extension projects necessary for renewable integration. Jorge and Hertwich (2014), however, calculate also the results per kilowatt-hour of electricity, so as to provide useful indications for comparison with the current system. As reported by the authors, this is just an estimate since “calculating the CO2/kWh and material use/kWh for the transmission grid in 2020 is a complex exercise which would require additional system data” (Jorge and Hertwich2014) about power losses and the generation mix at that time. As it can be seen, some studies can require a very specific functional unit, which is correct from a methodological point of view and coherent with the goal of the LCA. On the other hand, the associated results could be hardly transferred to other systems or used for the benefit of other researches.
+
+4.3Selection of impact categories
+
+The analysed studies take into consideration a wide set of potential impacts, as shown by the following graph (Fig.1) which indicates the number of studies for each category. Since the JRC in its “ILCD Handbook : Recommendations for Life Cycle Impact Assessment in the European context” (EC-JRC2011) identified the methods to apply for the modelling of the most common impact categories in the European context, we decided to indicate also the number of studies in which the utilized method complies with the guidance provided by the JRC. Obviously, the compliance with JRC’s recommendations is not to be seen as a quality index, since many of the analysed studies have been carried out before the publication of the handbook or they do not relate to the European context.
+
+Impact categories assessed in the analysed studies: total number of studies for each impact category and number of studies complying with JRC’s guidance
+
+All the studies assessclimate change,eutrophication aquatic, andresource depletion impacts. The other most utilized impact categories arehuman toxicity-cancer effects,photochemical ozone formation,acidification, andozone depletion. Half of the studies, more or less, include in the life cycle impact assessment (LCIA) the impacts related toparticulate matter,eco-toxicity, andhuman toxicity—non-cancer effects, while only few take into considerationland use,water depletion, andionizing radiation.
+
+4.4Modelling electrical losses and end of life of grid infrastructures
+
+Concerning life cycle assessment of electricity network, in this review, special attention was given to two key aspects which involve crucial methodological choices because of their influence on overall impacts: network losses (and electricity mix used to model them) and end of life of the infrastructures with specific reference to the assumptions about recycling of components. Here, below, it is highlighted what has emerged from the analysed studies, in relation to these issues.
+
+Concerning the first aspect, the present review confirms the importance of modelling the electricity losses: 11 (out of 16) studies consider losses in the use phase and two studies underline their importance, while leaving to subsequent studies the related assessment. More specifically, in the conclusion of the study dealing with environmental consequences of upgrading the European power grid for the integration of intermittent renewable power, Jorge and Hertwich (2014) suggest to include the effect of power losses in further LCAs. On the other hand, Bumby et al. (2010), in comparing high voltage (HV) overhead and underground lines, decided to leave to further studies the impact analysis of losses, since no robust and generally accepted way has been identified to convert the difference in resistance and reactance of the studied cables into differences in power loss. Most of the studies that take into account network losses use national energy mix for the calculation of the related impacts. Exceptions can be found in Kieffel et al. (2014), Jorge et al. (2012a), and Jorge et al. (2012b), where a European energy mix is considered. Generally, the energy mix used for impact assessment of electricity losses is referred to a specific year. However, as pointed out by Arvesen et al. (2015), electricity losses may vary from year to year. It would be, therefore, more appropriate to use electricity losses and corresponding mix averaged over the entire time period of the assessment. Moreover, in consideration of the relevant effects of losses on the overall impact and in view of the lifetime of an electric grid (more than 40 years), changes in national or supranational energy mix over the years may have no negligible influence on impact assessment results. Especially when the goal is to support network development plans or projects and the assessment must therefore necessarily be projected on a large time horizon, electricity production scenarios should be used to assess impacts due to network losses in the most correct way or, at least, sensitivity of the LCA results in relation with different scenarios should be highlighted.
+
+Concerning the end of life, almost all the studies include it in the life cycle. A particular attention is given to the recycling of materials, since it affects significantly the overall calculation of impacts. Recycling of materials, in particular metals (steel and aluminium for towers and conductors), determines a reduction of impacts (i.e. impacts due to the production of a material in input to the system decrease correspondingly to the percentage of the same material sent to recycling process), which in some cases can compensate the total impact of the end-of-life stage.
+
+In the study carried out by Jorge and Hertwich (2014), the end of life determines “avoided impacts” (i.e. a reduction of impacts), indicating that the benefits of recycling (in the hypothesis of 90% recycling for metals) far outweigh the impacts related to other disposal processes (landfill, incineration, etc.). Another example of the importance of recycling process is given by Wang et al. (2012), in which it is highlighted that the end-of-life phase avoids a certain amount of environmental impact, as recycling avoids exploiting more raw materials. In this way, aggregating the production and end-of-life phases in one phase called “materials”, results show clearly that the electricity losses give the most environmental impacts on most of indicators, although the electricity is produced only by hydropower.
+
+Berti et al. (2008) conclude that in the comparison between a porcelain bushing and a resin insulator for transformers, although the porcelain bushing presents, on the whole, higher impacts than the resin one, recycling of porcelain and metal allows a significant compensation of impacts at end of life. Also, de Nigris and Berti (2008) state that end of life and related assumptions influence significantly the results of the comparison between porcelain and composite bushing (the latter having a better environmental profile). Bumby et al. (2010) and Blackett et al. (2008) come to similar conclusion regarding the relevance of recycling processes. Not always, however, the end-of-life phase generates benefits (in terms of avoided impacts) for all impact categories. In Jorge et al. (2012a), the end of life has different effects depending on the analysed configuration. In the case of overhead lines, end of life reduces the overall impact for all the considered impact categories, because the recycling of metal parts causes benefits that exceed the sum of the impacts generated by the other end-of-life processes (landfilling, incineration of mineral oil, transport activities associated with disposal). On the contrary, for land cables and for the categoriesclimate change,fossil depletion, andozone depletion, recycling does not offset the impacts caused by the remaining processes at the end of life, while it does limit tometal depletion,human toxicity, andparticulate matter formation, in the case of sea cables.
+
+In conclusion, recycling does not necessarily generate benefits such as to compensate for the other impacts associated with the end of life. The extent of the benefits depends certainly on the assumptions about recycling rates, as well as on the weight of the non-recyclable materials (and related disposal processes) and, therefore, on the specific system or component under analysis. As shown below in the discussion on sensitivity analysis, different assumptions about the end of life can bring to non-trivial differences in final results. Certainly, it can be concluded that the aspects related to the end of life must be carefully taken into account in LCA of electrical networks and even more in the case of comparative analysis of specific components, where the production processes of materials (needed for the construction of the component itself) are decisive.
+
+4.5Analysis of the LCIA results
+
+In this paragraph, the main findings emerging from the life cycle impact assessment of the analysed studies are discussed, underlining emerging similarities and contradiction.
+
+If considered, power losses are the major contributor to overall impacts, generally more than infrastructures. However, it should be taken into account that transmission and distribution losses contribute to only a small percentage (for example between 5 and 9% in Garcia et al. (2014)) of the overall impacts when power generation is included in the LCA (i.e. in studies concerning the electricity supply, in which the network and its components are only a part of the boundaries of the system and not the central subject of the analysis). In such cases, then, the influence of the network infrastructure on the overall impacts is almost negligible.
+
+In the LCA of the Venezuelan transmission system (Wang et al.2012), for most impact categories, the transmission losses (even if the energy mix is composed by only hydropower) determine higher impacts than materials if the benefits of end-of-life phase are integrated along with material production (thus reducing related impacts). In the assessment of transmission system in Iceland, carried out by Hrólfsdóttir et al. (2014), the energy mix consists of hydropower and geothermal and for 10 out of 12 impact categories, the construction phase is predominant (most relevant processes being production of aluminium, zinc, and steel), despite the benefits due to recycling at the end of life. Only forclimate change, loss contribution dominates on the overall impact (62%), while both network losses and construction of substations contribute almost equally toresource depletion. These results confirm that, in particular when the energy mix used to model losses is composed in great part by renewables (and thus entails impacts much lower than a fossil-based mix in many impact categories), a great attention must be paid to material recycling and related rates which can be crucial in determining the predominant stage. Berti and de Nigris (2009) conclude that in the LCA of overhead conductors, the use phase is the most important for all impact categories, due to transport losses. As regards the construction phase, the most important process is the concrete production since, also in this case, metal production benefits from the recycling.
+
+Also in view of eco-design of components, drawing attention to losses is a crucial issue. For example, in the comparison between two technological solutions for circuit breaker (Kieffel et al.2014), the decrease on all environmental indicators achieved by the new technology is mainly due to electrical loss reduction. Results from Jorge et al. (2012b) underline this issue. Jorge et al. (2012b) claim that improvements in component efficiency (reduction of power losses) would significantly contribute to decreases in overall impacts. Nevertheless, making the equipment more efficient would perhaps also require higher material and energy inputs for their construction and therefore the environmental trade-off between higher efficiency and material/energy use is an interesting aspect to address in further energy systems studies and in grid planning (Jorge et al.2012b).
+
+The importance of power losses on LCA results leads to another important consideration. As far as different countries use different energy resource mixes and different power plant technologies to produce electricity, there is a great variability in LCA results depending on the reference geographical area of the study. For example, as the emission rate of CO2of a kilowatt-hour produced in Italy is different from a kilowatt-hour produced in France, the emission of CO2of 1 km of high voltage line during the life cycle will be different in the two countries. This will lead also to a relative variability in the relevance of the energy losses in LCA results.
+
+When losses are not considered, the LCIA results show the predominant role of the infrastructure with particular reference to the extraction and production of materials. In the study by Jorge and Hertwich (2014), the materials determine most of the impacts for all categories despite the positive effects of recycling, and specific manufacturing processes (hot steel rolling, galvanization of masts, and manufacturing of conductors) constitute a considerable share of scores in some impact categories (particularly for water depletion). Among materials, aluminium results the main contributor to impacts both for tower and conductors (Blackett et al.2008; Bumby et al.2010).
+
+Another aspect to be considered for specific components, such as circuit breakers, is SF6emission because of its potential significant environmental impacts onclimate change(Wang et al.2012; Kieffel et al.2014).
+
+Generally, since the considered studies present different goals, system boundaries, and functional units, a comparison between numerical results (i.e. calculated impacts) risk to be misleading. Anyway, four studies have been selected which report clearly the numerical results of CO2eq, referred to almost the same functional units and similar system boundaries. At a first analysis, data (Fig.2) confirm the considerations reported above. In fact, the differences in CO2eqare attributable to different electricity mixes used to model losses: from the more carbon-intensive mix (Turconi et al.2013, Danish mix, year 2010) to the total renewable ones of Arvesen et al. (2015), Jorge and Hertwich (2013) (Norway mix), and Hrólfsdóttir et al. (2014) (Icelandic mix).
+
+Results of impact assessment of four selected studies: climate change impact of transmission and distribution of electricity. Jorge and Hertwich (2013) and Hrólfsdóttir et al. (2014) consider only transmission grid
+
+On the other hand, to fully explain the differences, a deepening on more elements (e.g. grid losses percentage, system boundaries etc.) would be necessary. The difference between Jorge and Hertwich (2013) and Arvesen et al. (2015), both dealing with Norway transmission, probably depends on the inclusion of the regional transmission grid in Arvesen et al. (2015) in addition to the main national one considered in Jorge and Hertwich (2013). As stated by Hrólfsdóttir et al. (2014), the reasons for the lower impact in Iceland (than in Norway) could for example be reliability of inventory data, a considerably longer transmission grid in Norway, which also includes underground and sea cables, and that the Norwegian study only includes steel towers.
+
+The considerations expressed about CO2eqresults are valid, also, for the contribution of losses to the overall climate change impact of transmission (Fig.3): the most relevant contribution is associated with the most carbon-intensive mix.
+
+Results of impact assessment of the four selected studies: loss contribution to climate change impact of transmission of electricity
+
+4.6Sensitivity analysis results
+
+Five of the analysed studied investigated robustness of the results through sensitivity analysis.
+
+Bumby et al. (2010) take into consideration a set of potentially significant parameters in the LCA of overhead and underground distribution system in South California (cables and infrastructure lifetime, rates of pentachlorophenol leaching from utility poles, cables failure frequencies due to external events, and cable recycling rates). The analysis demonstrate that results are robust, since the worst case (combinations of parameter values that yield the largest impact) of the overhead system has lower impacts than the best case (combinations of parameter values that yield the smallest impact) of the underground system for all indicators. Even if the recycling rates (considered range 0.91–0.95), as well as the other parameters, do not influence the final result of the comparison between the two systems, the importance of cable recycling and how this is accounted for in the LCA is however highlighted by the fact that, for many categories, the related avoided impact has the same magnitude of the impacts coming from the cable production phase.
+
+Given the importance of production on the overall impact, the amount of recycled materials used for specific components could strongly influence results especially in the comparison between solutions which differs in employed materials. Blackett et al. (2008) highlight that when the recycled aluminium and steel are both considered, the results of the comparison between aluminium tower and painted steel tower change significantly. In the case of 80% recycled materials, the painted steel tower imposes fewer burdens than the aluminium one in many categories, while considering 100% recycled materials, the aluminium tower imposes fewer burdens than the painted steel tower for all the considered impact categories. Similarly, when considering recycled aluminium (80 or 100%), the impacts of conductors drop considerably, and for some impact categories (eutrophication and toxicity), the all-aluminium alloy conductor performs better than Aluminium Conductor Steel Reinforced (ACSR), which is the solution that performs better for all impact categories in the case of non-recycling.
+
+Jorge and Hertwich (2014), assessing environmental consequences related to the upgrade of the current European power grid as required for the integration of intermittent renewable power, point out that the results vary significantly with changes in recycling rates. The analysis on the three recycling scenarios (no recycling, 50% metal recycling, 90% metal recycling) shows substantial changes forclimate change,fossil depletion,metal depletion, andhuman toxicity.
+
+It should be noted, however, that the three mentioned studies do not take into account electricity losses and this certainly influences the effects of recycling on the overall impacts. The benefits of recycling processes on the overall impact would be, in percentage, lower if the network losses were considered, as these determine impacts greater than those of the network infrastructure for many impact categories. The evaluation of actual effects of the recycling, and related assumptions, on the overall impact taking into account electricity losses is an interesting issue for further investigation.
+
+Concerning the above-mentioned importance of accurately modelling power loss effects, interesting findings are given by Jorge and Hertwich (2013) and Arvesen et al. (2015), which present alternative results under assumptions of different electricity mixes, in the LCA of electricity transmission and distribution in Norway. In particular, Arvesen et al. (2015) show that even if transmission and distribution cause fewer impacts than electricity generation regardless of what electricity mix is used, the relative importance of power losses changes appreciably.
+
+5Conclusions
+
+A review of 16 studies concerning life cycle assessment of an electricity grid or its components has been conducted. All the studies have a good degree of compliance with the guidance provided by ISO 14040, as regards goal definition and description of system boundaries. Almost all papers take into consideration the entire life cycle, from cradle to grave, and describe accurately the processes excluded by the system boundaries. Concerning impact categories selection, the review showed a wide set of impacts taken into consideration, with some categories very frequently utilized (e.g. greenhouse gases, eutrophication of water, and depletion of resources) and others considered only in few studies (water scarcity, ionizing radiation). The choice of impact categories remains an open issue for LCA of electricity networks which requires additional reflection, but a useful starting point could be to take into account the most used ones.
+
+A correct definition of functional unit came out as a methodological issue far from trivial. Some studies can require a very specific functional unit (e.g. the connection of two specific substations), in coherence with the goal of the LCA, which allows a correct description of the service provided by an electricity network. On the other hand, the associated results could be hardly transferred to other systems or used for the benefit of other researches. It would be useful to find a compromise between the results’ transferability and comparability deriving from the use of parameterized functional units (e.g. per unit of length) and consistency and adherence to the service actually provided, inherent to the use of more specific functional units (e.g. transportingXpower atYvoltage from substation A to substation B).
+
+Beyond the specific outcomes (obviously, depending on the specific object of the LCA), the analysis of the results of the studies has put in evidence two general aspects. The first deals with the importance of recycling and how it is accounted for in the LCA. Recycling of materials, in particular metals (steel and aluminium for towers and conductors) determines a reduction of impacts, which in some cases can compensate for the total impact of the end-of-life stage. Different assumptions about the end of life and recycling can bring to non-trivial differences in final results, especially in the case of comparative analysis of specific components, where the production processes of materials needed for the construction of the component itself are decisive.
+
+The second aspect concerns the determining role of the losses on the overall impacts: 11 out of 16 studies take into account the losses and other two studies suggest to include them in future LCAs. Neglecting losses in the evaluation of networks or resistive components may be too simplifying, if not misleading. Moreover, the modelling of electricity losses involves interesting suggestions for future researches. A relevant methodological topic is the correct evaluation of the electricity mix. In consideration of the relevant effects of losses on the overall impact and in view of the lifetime of an electric grid (more than 40 years), changes in national or supranational energy mix over the years may have not negligible influence on impact assessment results. This is even more important when the aim of the study is to support network development plans or projects and the assessment must therefore necessarily be projected over a long time horizon. In such cases, scenario of electricity production evolution should be used to assess impacts due to network losses or, at least, sensitivity to different scenarios should be highlighted. Surprisingly, none of the analysed studies take into account such considerations, using a “static” energy mix to evaluate the impacts due to transmission and distribution losses. It should also be noted that for this kind of application, an open research topic, which requires further deepening, is the one related to the most appropriate approach between “attributional LCA” or “consequential LCA”. For example, Audard et al. (2015) suggest to use a consequential approach at least when dealing with a grid development project. None of the analysed studies face this issue and all of them use an attributional approach.
+
+References
+
+Audard G, Peuportier B, Schalbart P, Lafragette A (2015) Methodologies for the life cycle assessment. Inspire-Grid – Deliverable 4.2.www.inspire-grid.eu. Accessed October 2016
+
+Arvesen A, Hauan IB, Bolsoy BM, Hertwich EG (2015) Life cycle assessment of transport of electricity via different voltage levels: a case study for Nord-Trondelag county in Norway. Appl Energ 157:144–151
+
+ArticleGoogle Scholar
+
+Berti R, Bonomelli M, Fedeli G (2008) LCA Comparativa di passanti MT per trasformatori di distribuzione MT/BT. Rapporto Ricerca di Sistema RSE 08002080. RSE SpA, Milano.http://www.rse-web.it/documenti/documento/1908. Accessed September 2015
+
+Berti R, de Nigris M (2009) LCA comparative di diverse tipologie di conduttori aerei MT. Rapporto Ricerca di Sistema Cesi Ricerca 08004878, Milano.http://www.rse-web.it/documenti/documento/1904. Accessed September 2015
+
+Blackett G, Savor E, Toy N, Parke GAR, Clark M, Rabjohns B (2008) An evaluation of the environmental burdens of present and alternative materials used for electricity transmission. Build Environ 43(7):1326–1338
+
+ArticleGoogle Scholar
+
+Bumby S, Druzhinina E, Feraldi R, Werthmann D, Geyer R, Sahl J (2010) Life cycle assessment of overhead and underground primary power distribution. Environ Sci Technol 44(14):5587–5593
+
+ArticleCASGoogle Scholar
+
+Davidsson S, Höök M, Wall G (2012) A review of life cycle assessments on wind energy systems. Int J Life Cycle Assess 17:729–742
+
+ArticleCASGoogle Scholar
+
+de Nigris M, Berti R (2008) Applicazione della metodologia LCA a passanti AT. Rapporto Ricerca di Sistema RSE 08002079. RSE SpA, Milano.http://doc.rse-web.it/doc/doc-sfoglia/08002079-1902/08002079-1902.html. Accessed September 2015
+
+EC-JRC (2011) International reference life cycle data system (ILCD) handbook—recommendations for life Cycle impact assessment in the European context. First edition November 2011. EUR 24571 EN. Luxembourg. Publications Office of the European Union
+
+ENTSO-E (2012) Ten year network development plan 2014. European Network of Transmission System Operators for Electricity
+
+ENTSO-E (2014) Ten year network development plan 2014. European Network of Transmission System Operators for Electricity
+
+Garcia R, Marques P, Freire F (2014) Life-cycle assessment of electricity in Portugal. Appl Energ 134:563–572
+
+ArticleCASGoogle Scholar
+
+Hrólfsdóttir HB, Ingólfsdóttir GM, Pálsson M, Valsdóttir IL, Guðmundsson I, Bjarnason Þ, Guðjónsdóttir GM, Bjarnadóttir HJ (2014) Life cycle assessment of the high voltage OHL transmission system in Iceland. C3-211 CIGRÉ General Session, Paris 2014
+
+Harrison GP, Karamanlis S, Ochoa LF (2010) Life cycle assessment of the transmission network in Great Britain. Energ Policy 38(7):3622–3631
+
+ArticleGoogle Scholar
+
+ISO 14040:2006 Environmental management—life cycle assessment—principles and framework. International Organization for Standardization, Geneva
+
+ISO 14044:2006 Environmental management—life cycle assessment—requirements and guidelines. International Organization for Standardization, Geneva
+
+Jones CI, McManus MC (2010) Life-cycle assessment of 11 kV electrical overhead lines and underground cables. Applied Energy. J Clean Prod 18(14):1464–1477
+
+Jorge RS, Hawkins TR, Hertwich EG (2012a) Life cycle assessment of electricity transmission and distribution—part 1: power lines and cables. Int J Life Cycle Assess 17(1):9–15
+
+ArticleCASGoogle Scholar
+
+Jorge RS, Hawkins TR, Hertwich EG (2012b) Life cycle assessment of electricity transmission and distribution—part 2: transformer and substation equipment. Int J Life Cycle Assess 17(2):184–191
+
+ArticleCASGoogle Scholar
+
+Jorge RS, Hertwich EG (2013) Environmental evaluation of power transmission in Norway. Appl Energ 101:513–520
+
+ArticleGoogle Scholar
+
+Jorge RS, Hertwich EG (2014) Grid infrastructure for renewable power in Europe: the environmental cost. Energy 69:760–768
+
+ArticleGoogle Scholar
+
+Kieffel Y, Spinosa A, Laruelle E, Stumpf K (2014) Life cycle assessment and end-of-life management of GIS and AIS. C3-203, CIGRÉ General Session, Paris 2014
+
+Ó Luain C et al. (2004) Life cycle assessment for overhead lines. Cigré TB; WG B2-15, Paris
+
+Turconi R, Simonsen CG, Byriel IP, Astrup T (2013) Life cycle assessment of the Danish electricity distribution network. Int J Life Cycle Assess 19(1):100–108
+
+ArticleGoogle Scholar
+
+Wang A, Beroual A, Mehiri T, Tremouille G (2012) Life cycle assessment on a 765 kV AC transmission system. C3-208, CIGRÉ General Session, Paris 2012
+
+Download references
+
+Acknowledgements
+
+This work has been financed by the Research Fund for the Italian Electrical System decree of Italian Economic Development Ministry November 9th 2012 and following.
+
+Author information
+
+Authors and Affiliations
+
+Sustainable Development and Energy Sources Department, RSE—Ricerca sul Sistema Energetico, Via Rubattino 54, 20134, Milan, Italy
+
+Alessia Gargiulo, Pierpaolo Girardi & Andrea Temporelli
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+You can also search for this author inPubMedGoogle Scholar
+
+Corresponding author
+
+Correspondence toAlessia Gargiulo.
+
+Ethics declarations
+
+Funding
+
+This work has been financed by the Research Fund for the Italian Electrical System decree of Italian Economic Development Ministry November 9th 2012 and following.
+
+Conflict of interest
+
+The authors declare that they have no conflict of interest.
+
+Additional information
+
+Responsible editor: Omer Tatari
+
+Rights and permissions
+
+Reprints and permissions
+
+About this article
+
+Cite this article
+
+Gargiulo, A., Girardi, P. & Temporelli, A. LCA of electricity networks: a review.Int J Life Cycle Assess22, 1502–1513 (2017). https://doi.org/10.1007/s11367-017-1279-x
+
+Download citation
+
+Received:29 June 2016
+
+Accepted:01 February 2017
+
+Published:10 February 2017
+
+Issue Date:October 2017
+
+DOI:https://doi.org/10.1007/s11367-017-1279-x
+
+Share this article
+
+Anyone you share the following link with will be able to read this content:
+
+Sorry, a shareable link is not currently available for this article.
+
+Provided by the Springer Nature SharedIt content-sharing initiative
+
+Keywords
