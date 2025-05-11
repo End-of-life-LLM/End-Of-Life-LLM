@@ -46,7 +46,7 @@ model = Model(api_key=api_key)
 rag_system = RAGController(api_key=api_key, embedding_model="text-embedding-3-large", cache_enabled=True)
 article_manager = WebArticleManager(max_results=5, save_directory="articles")
 token_counter = Token_Counter()
-
+toggle_state = False
 # Session management
 CHAT_SESSIONS = {}  # Store chat sessions in memory (replace with database for production)
 
@@ -181,22 +181,92 @@ def send_message():
         if use_rag and rag_system.is_loaded():
             # Use RAG system if we have indexed content
             logger.info("Using RAG system for response")
-            rag_response = rag_system.query(
-                question=user_message,
-                k=3,
-                model=settings.get('model', DEFAULT_SETTINGS['model'])
-            )
+            
+            try:
+                rag_response = rag_system.query(
+                    question=user_message,
+                    k=3,
+                    model=settings.get('model', DEFAULT_SETTINGS['model'])
+                )
+                
+                # Confirm rag_response is a dictionary
+                logger.info(f"RAG response type: {type(rag_response)}")
+                if isinstance(rag_response, dict):
+                    logger.info(f"RAG response keys: {rag_response.keys()}")
+                
+            except Exception as rag_error:
+                logger.error(f"Error in RAG query: {rag_error}")
+                logger.error(f"Exception type: {type(rag_error)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                raise
+            
             response = rag_response['answer']
             
             # Add source information if available
             if 'source_documents' in rag_response and rag_response['source_documents']:
-                sources = set()
-                for doc in rag_response['source_documents']:
-                    if 'metadata' in doc and 'source' in doc['metadata']:
-                        sources.add(doc['metadata']['source'])
+                sources = []
                 
+                # Debug logging to see exactly what's in source_documents
+                logger.info(f"Number of source documents: {len(rag_response['source_documents'])}")
+                
+                for i, doc in enumerate(rag_response['source_documents']):
+                    try:
+                        # Log the structure of each document
+                        logger.info(f"Document {i} type: {type(doc)}")
+                        
+                        if isinstance(doc, dict):
+                            logger.info(f"Document {i} keys: {doc.keys()}")
+                            
+                            if 'metadata' in doc:
+                                logger.info(f"Document {i} metadata type: {type(doc['metadata'])}")
+                                
+                                if isinstance(doc['metadata'], dict):
+                                    logger.info(f"Document {i} metadata keys: {doc['metadata'].keys()}")
+                                    
+                                    # Log each metadata item's type
+                                    for key, value in doc['metadata'].items():
+                                        logger.info(f"Document {i} metadata['{key}'] type: {type(value)}")
+                                        if isinstance(value, list):
+                                            logger.info(f"Document {i} metadata['{key}'] is a list with {len(value)} items")
+                                    
+                                    if 'source' in doc['metadata']:
+                                        source = doc['metadata']['source']
+                                        logger.info(f"Document {i} source value: {source}")
+                                        logger.info(f"Document {i} source type: {type(source)}")
+                                        
+                                        # Handle different source types
+                                        if isinstance(source, str):
+                                            sources.append(source)
+                                        elif isinstance(source, list):
+                                            logger.info(f"Document {i} source is a list: {source}")
+                                            # Add each item from the list
+                                            for item in source:
+                                                if isinstance(item, str):
+                                                    sources.append(item)
+                                                else:
+                                                    logger.warning(f"Non-string item in source list: {item} (type: {type(item)})")
+                                        else:
+                                            # Convert other types to string
+                                            sources.append(str(source))
+                                            logger.info(f"Converted source to string: {str(source)}")
+                    
+                    except Exception as doc_error:
+                        logger.error(f"Error processing document {i}: {doc_error}")
+                        logger.error(f"Exception type: {type(doc_error)}")
+                        logger.error(f"Document content: {str(doc)[:500]}...")  # First 500 chars
+                        import traceback
+                        logger.error(f"Traceback: {traceback.format_exc()}")
+                        continue
+                
+                # Remove duplicates using dict.fromkeys()
                 if sources:
-                    response += "\n\nSources: " + ", ".join(sources)
+                    unique_sources = list(dict.fromkeys(sources))
+                    logger.info(f"Final unique sources: {unique_sources}")
+                    response += "\n\nSources: " + ", ".join(unique_sources)
+                else:
+                    logger.info("No sources found in documents")
+                    
         else:
             # Use standard model if no RAG content or explicitly requested
             logger.info("Using standard model for response")
@@ -211,8 +281,21 @@ def send_message():
         
     except Exception as e:
         logger.error(f"Error processing message: {e}")
-        return jsonify({"error": f"Error processing message: {str(e)}"}), 500
-
+        logger.error(f"Exception type: {type(e)}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        
+        # Return a more detailed error for debugging
+        error_details = {
+            "error": f"Error processing message: {str(e)}",
+            "type": str(type(e)),
+            "message": user_message,
+            "use_rag": use_rag,
+            "stack_trace": traceback.format_exc()
+        }
+        return jsonify(error_details), 500
+    
+    
 @app.route('/new_chat', methods=['POST'])
 def new_chat():
     """Create a new chat session"""
@@ -294,6 +377,17 @@ def system_info():
         },
         "active_sessions": len(CHAT_SESSIONS)
     })
+
+@app.route('/toggle', methods=['POST'])
+def toggle():
+    global toggle_state
+    toggle_state = not toggle_state
+    return jsonify({'state': toggle_state, 'text': 'On' if toggle_state else 'Off'})
+
+@app.route('/get_state', methods=['GET'])
+def get_state():
+    return jsonify({'state': toggle_state, 'text': 'On' if toggle_state else 'Off'})
+
 
 if __name__ == '__main__':
     # Ensure required directories exist

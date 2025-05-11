@@ -5,6 +5,7 @@ import json
 import time
 import logging
 from typing import List, Dict, Any, Optional
+import hashlib
 
 # Import from our modules
 from .embedding_service import Embedding_Service
@@ -145,8 +146,8 @@ class RAGController:
         Returns:
             List of dictionaries with search results.
         """
-        # Check cache first if enabled
-        cache_key = (query, k, use_hybrid, rerank)
+        # Check cache first if enabled - FIXED WITH HASH STRING
+        cache_key = hashlib.sha256(f"{query}:{k}:{use_hybrid}:{rerank}".encode()).hexdigest()
         if self.cache_enabled and cache_key in self.query_cache:
             logger.info("Using cached search results")
             return self.query_cache[cache_key]
@@ -182,8 +183,8 @@ class RAGController:
         Returns:
             List of dictionaries with filtered search results.
         """
-        # Check cache first if enabled
-        cache_key = (query, filter_key, str(filter_value), k)
+        # Check cache first if enabled - FIXED WITH HASH STRING
+        cache_key = hashlib.sha256(f"{query}:{filter_key}:{str(filter_value)}:{k}".encode()).hexdigest()
         if self.cache_enabled and cache_key in self.query_cache:
             logger.info("Using cached filtered search results")
             return self.query_cache[cache_key]
@@ -337,8 +338,15 @@ class RAGController:
         if not self.vector_store.texts:
             return {"answer": "No indexed documents. Please index some documents first."}
         
-        # Check cache first
-        cache_key = (question, k, model)
+        # Check cache first - FIXED WITH HASH STRING
+        cache_key = hashlib.sha256(
+            json.dumps({
+                "question": question,
+                "k": k,
+                "model": model
+            }, sort_keys=True).encode()
+        ).hexdigest()
+        
         if self.cache_enabled and cache_key in self.query_cache:
             logger.info("Using cached query results")
             return self.query_cache[cache_key]

@@ -3,18 +3,56 @@ import json
 import logging
 import os
 import pickle
-from typing import Any, Dict, List, Optional, Tuple, Callable
+from typing import Any, Dict, List, Optional, Tuple, Callable, Union
 from cachetools import LRUCache
 import faiss
 import numpy as np
 from sklearn.preprocessing import normalize
 from functools import lru_cache
+import hashlib
 
 # Cache for storing embeddings - minimize API calls
 embedding_cache = LRUCache(maxsize=1000)  # Increased cache size
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("VectorStore")
+
+
+def _make_hashable(value):
+    """Convert unhashable types to hashable ones."""
+    if isinstance(value, list):
+        return tuple(_make_hashable(v) for v in value)
+    elif isinstance(value, set):
+        return tuple(sorted(_make_hashable(v) for v in value))
+    elif isinstance(value, np.ndarray):
+        return tuple(value.flatten().tolist())
+    elif isinstance(value, dict):
+        return {k: _make_hashable(v) for k, v in value.items()}
+    else:
+        return value
+
+
+def get_embedding_hash(embedding: Union[np.ndarray, List[float], tuple]) -> str:
+    """
+    Generate a consistent hash for any embedding format.
+    
+    Args:
+        embedding: The embedding in any format (list, tuple, or numpy array)
+        
+    Returns:
+        SHA-256 hash string
+    """
+    # Convert to numpy array if needed
+    if isinstance(embedding, (list, tuple)):
+        arr = np.array(embedding, dtype=np.float32)
+    elif isinstance(embedding, np.ndarray):
+        arr = embedding.astype(np.float32)
+    else:
+        raise TypeError(f"embedding must be list, tuple, or numpy array, got {type(embedding)}")
+    
+    # Generate hash from the bytes representation
+    return hashlib.sha256(arr.tobytes()).hexdigest()
+
 
 class Vector_Store:
     """Class for storing and retrieving document embeddings."""
@@ -50,6 +88,14 @@ class Vector_Store:
         elif len(metadata) != len(texts):
             raise ValueError("Number of metadata items must match number of texts")
         
+        # Sanitize metadata before storing
+        sanitized_metadata = []
+        for meta in metadata:
+            sanitized_meta = {}
+            for key, value in meta.items():
+                sanitized_meta[key] = _make_hashable(value)
+            sanitized_metadata.append(sanitized_meta)
+        
         # Normalize embeddings for cosine similarity
         normalized_embeddings = normalize(embeddings.astype(np.float32), axis=1)
         self.is_normalized = True
@@ -60,24 +106,23 @@ class Vector_Store:
             # Use IndexFlatIP for cosine similarity with normalized vectors
             self.index = faiss.IndexFlatIP(self.dimension)
         
-        # Store texts and metadata
+        # Store texts and sanitized metadata
         self.texts.extend(texts)
-        self.metadata.extend(metadata)
+        self.metadata.extend(sanitized_metadata)
         
         # Add to FAISS index
         self.index.add(normalized_embeddings)
         
         logger.info(f"Added {len(texts)} documents to vector store")
 
-    @lru_cache(maxsize=128)
-    def search(self, query_embedding: np.ndarray, query_text: str, 
+    def search(self, query_embedding: Union[np.ndarray, List[float], tuple], query_text: str, 
                k: int = 3, use_hybrid: bool = True, alpha: float = 0.7,
                rerank: bool = True) -> List[Dict[str, Any]]:
         """
         Search for most similar documents with optional hybrid retrieval and reranking.
         
         Args:
-            query_embedding: Embedding of the query.
+            query_embedding: Embedding of the query (can be list, tuple, or numpy array).
             query_text: Original query text (used for hybrid search).
             k: Number of results to return.
             use_hybrid: Whether to use hybrid retrieval (vector + sparse).
@@ -89,18 +134,21 @@ class Vector_Store:
         """
         if self.index is None or not self.texts:
             return []
-        
-        # Convert tuple to numpy array for query embedding
-        if isinstance(query_embedding, tuple):
-            query_embedding = np.array(query_embedding)
             
-        # Cache key for this query
-        cache_key = (tuple(query_embedding.flatten()), query_text, k, use_hybrid, alpha, rerank)
+        # Cache key for this query - using helper function to handle all formats
+        embedding_hash = get_embedding_hash(query_embedding)
+        cache_key = f"{embedding_hash}:{query_text}:{k}:{use_hybrid}:{alpha}:{rerank}"
         
         # Check if we have cached results for this query
         if cache_key in embedding_cache:
             logger.info("Using cached search results")
             return embedding_cache[cache_key]
+        
+        # Convert to numpy array if needed
+        if isinstance(query_embedding, (list, tuple)):
+            query_embedding = np.array(query_embedding, dtype=np.float32)
+        elif not isinstance(query_embedding, np.ndarray):
+            raise TypeError(f"query_embedding must be list, tuple, or numpy array, got {type(query_embedding)}")
             
         # Normalize query embedding for cosine similarity
         normalized_query = normalize(query_embedding.reshape(1, -1).astype(np.float32))
@@ -136,6 +184,134 @@ class Vector_Store:
         embedding_cache[cache_key] = final_results
         
         return final_results
+
+    def search_with_filter(self, query_embedding: Union[np.ndarray, List[float], tuple], query_text: str, 
+                        filter_key: str, filter_value: Any, k: int = 3) -> List[Dict[str, Any]]:
+        """
+        Search for documents with a metadata filter.
+        
+        Args:
+            query_embedding: Embedding of the query (can be list, tuple, or numpy array).
+            query_text: Original query text.
+            filter_key: Metadata key to filter on.
+            filter_value: Value to match for the filter key.
+            k: Number of results to return.
+            
+        Returns:
+            List of dictionaries with filtered search results.
+        """
+        # Create cache key for filtered search - using helper function
+        embedding_hash = get_embedding_hash(query_embedding)
+        
+        # Handle unhashable filter values
+        try:
+            filter_value_str = json.dumps(filter_value, sort_keys=True)
+        except TypeError:
+            filter_value_str = str(filter_value)
+        
+        cache_key = f"{embedding_hash}:{query_text}:{filter_key}:{filter_value_str}:{k}"
+        
+        # Check cache first
+        if cache_key in embedding_cache:
+            logger.info("Using cached filtered search results")
+            return embedding_cache[cache_key]
+        
+        # First get more results than needed
+        initial_results = self.search(query_embedding, query_text, k=k*3)
+        
+        # Filter by metadata
+        filtered_results = [r for r in initial_results if r["metadata"].get(filter_key) == filter_value]
+        
+        # Return top k after filtering
+        result = filtered_results[:k]
+        embedding_cache[cache_key] = result
+        
+        return result
+
+    def get_document_by_id(self, doc_id: Any) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve a specific document by its ID in metadata.
+        
+        Args:
+            doc_id: ID to search for.
+            
+        Returns:
+            Dictionary with document info or None if not found.
+        """
+        # Create cache key
+        cache_key = f"doc_id:{doc_id}"
+        
+        # Check cache
+        if cache_key in embedding_cache:
+            return embedding_cache[cache_key]
+            
+        for i, meta in enumerate(self.metadata):
+            if meta.get("chunk_id") == doc_id or meta.get("id") == doc_id:
+                result = {
+                    "text": self.texts[i],
+                    "metadata": meta
+                }
+                # Cache result
+                embedding_cache[cache_key] = result
+                return result
+        return None
+
+    def get_context_window(self, doc_id: Any, window_size: int = 1) -> List[Dict[str, Any]]:
+        """
+        Get surrounding context for a specific document.
+        
+        Args:
+            doc_id: ID of the center document.
+            window_size: Number of documents to include on each side.
+            
+        Returns:
+            List of dictionaries with context documents.
+        """
+        # Create cache key
+        cache_key = f"context:{doc_id}:{window_size}"
+        
+        # Check cache
+        if cache_key in embedding_cache:
+            return embedding_cache[cache_key]
+            
+        # Find the document first
+        doc = self.get_document_by_id(doc_id)
+        if not doc:
+            return []
+        
+        source = doc["metadata"].get("source")
+        
+        # Find all documents from the same source
+        source_docs = []
+        for i, meta in enumerate(self.metadata):
+            if meta.get("source") == source:
+                source_docs.append({
+                    "index": i,
+                    "chunk_id": meta.get("chunk_id", meta.get("id")),
+                    "text": self.texts[i],
+                    "metadata": meta
+                })
+        
+        # Sort by chunk_id or sequence
+        source_docs.sort(key=lambda x: x["chunk_id"])
+        
+        # Find the current document position
+        current_pos = next((i for i, d in enumerate(source_docs) 
+                            if d["chunk_id"] == doc["metadata"].get("chunk_id", doc["metadata"].get("id"))), -1)
+        
+        if current_pos == -1:
+            return []
+        
+        # Get the window
+        start = max(0, current_pos - window_size)
+        end = min(len(source_docs), current_pos + window_size + 1)
+        
+        result = [{"text": d["text"], "metadata": d["metadata"]} for d in source_docs[start:end]]
+        
+        # Cache result
+        embedding_cache[cache_key] = result
+        
+        return result
 
     def _rerank_results(self, results: List[Dict[str, Any]], query_text: str) -> List[Dict[str, Any]]:
         """
@@ -225,127 +401,6 @@ class Vector_Store:
         # Sort by reranking score
         results.sort(key=lambda x: x.get("rerank_score", 0.0), reverse=True)
         return results
-
-    def search_with_filter(self, query_embedding: np.ndarray, query_text: str, 
-                        filter_key: str, filter_value: Any, k: int = 3) -> List[Dict[str, Any]]:
-        """
-        Search for documents with a metadata filter.
-        
-        Args:
-            query_embedding: Embedding of the query.
-            query_text: Original query text.
-            filter_key: Metadata key to filter on.
-            filter_value: Value to match for the filter key.
-            k: Number of results to return.
-            
-        Returns:
-            List of dictionaries with filtered search results.
-        """
-        # Create cache key for filtered search
-        cache_key = (tuple(query_embedding.flatten()), query_text, filter_key, str(filter_value), k)
-        
-        # Check cache first
-        if cache_key in embedding_cache:
-            logger.info("Using cached filtered search results")
-            return embedding_cache[cache_key]
-        
-        # First get more results than needed
-        initial_results = self.search(query_embedding, query_text, k=k*3)
-        
-        # Filter by metadata
-        filtered_results = [r for r in initial_results if r["metadata"].get(filter_key) == filter_value]
-        
-        # Cache results
-        result = filtered_results[:k]
-        embedding_cache[cache_key] = result
-        
-        # Return top k after filtering
-        return result
-
-    def get_document_by_id(self, doc_id: Any) -> Optional[Dict[str, Any]]:
-        """
-        Retrieve a specific document by its ID in metadata.
-        
-        Args:
-            doc_id: ID to search for.
-            
-        Returns:
-            Dictionary with document info or None if not found.
-        """
-        # Create cache key
-        cache_key = ('doc_id', doc_id)
-        
-        # Check cache
-        if cache_key in embedding_cache:
-            return embedding_cache[cache_key]
-            
-        for i, meta in enumerate(self.metadata):
-            if meta.get("chunk_id") == doc_id or meta.get("id") == doc_id:
-                result = {
-                    "text": self.texts[i],
-                    "metadata": meta
-                }
-                # Cache result
-                embedding_cache[cache_key] = result
-                return result
-        return None
-
-    def get_context_window(self, doc_id: Any, window_size: int = 1) -> List[Dict[str, Any]]:
-        """
-        Get surrounding context for a specific document.
-        
-        Args:
-            doc_id: ID of the center document.
-            window_size: Number of documents to include on each side.
-            
-        Returns:
-            List of dictionaries with context documents.
-        """
-        # Create cache key
-        cache_key = ('context', doc_id, window_size)
-        
-        # Check cache
-        if cache_key in embedding_cache:
-            return embedding_cache[cache_key]
-            
-        # Find the document first
-        doc = self.get_document_by_id(doc_id)
-        if not doc:
-            return []
-        
-        source = doc["metadata"].get("source")
-        
-        # Find all documents from the same source
-        source_docs = []
-        for i, meta in enumerate(self.metadata):
-            if meta.get("source") == source:
-                source_docs.append({
-                    "index": i,
-                    "chunk_id": meta.get("chunk_id", meta.get("id")),
-                    "text": self.texts[i],
-                    "metadata": meta
-                })
-        
-        # Sort by chunk_id or sequence
-        source_docs.sort(key=lambda x: x["chunk_id"])
-        
-        # Find the current document position
-        current_pos = next((i for i, d in enumerate(source_docs) 
-                            if d["chunk_id"] == doc["metadata"].get("chunk_id", doc["metadata"].get("id"))), -1)
-        
-        if current_pos == -1:
-            return []
-        
-        # Get the window
-        start = max(0, current_pos - window_size)
-        end = min(len(source_docs), current_pos + window_size + 1)
-        
-        result = [{"text": d["text"], "metadata": d["metadata"]} for d in source_docs[start:end]]
-        
-        # Cache result
-        embedding_cache[cache_key] = result
-        
-        return result
 
     def save(self, directory: str) -> None:
         """

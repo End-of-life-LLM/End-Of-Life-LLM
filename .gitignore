@@ -3,3 +3,4 @@ Cloud LLM Implementation/.env
 UI/package-lock.json
 UI/package.json
 .env
+*.pyc

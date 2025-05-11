@@ -56,10 +56,32 @@ let isToggled = false;
 
 const toggleBtn = document.getElementById("toggle-button");
 
-toggleBtn.addEventListener("click", function () {
-    isToggled = !isToggled;
-    toggleBtn.textContent = isToggled ? "On" : "Off";
-    console.log("Toggle state:", isToggled);
+fetch('/get_state')
+.then(response => response.json())
+.then(data => {
+    toggleBtn.textContent = data.text;
+    serverStateDiv.textContent = `Server state: ${data.text}`;
+})
+.catch(error => console.error('Error getting initial state:', error));
+
+
+toggleBtn.addEventListener("click", async function () {
+    try {
+        const response = await fetch('/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        toggleBtn.textContent = data.text;
+        serverStateDiv.textContent = `Server state: ${data.text}`;
+        
+        console.log("Toggle state:", data.state);
+    } catch (error) {
+        console.error('Error toggling state:', error);
+    }
 });
 
 // Fetch chat sessions from server
