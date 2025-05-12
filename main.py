@@ -94,7 +94,8 @@ def save_api_settings():
     settings['temperature'] = float(request.form.get('temperature', settings.get('temperature', 0.7)))
     settings['max_tokens'] = int(request.form.get('maxTokens', settings.get('max_tokens', 1000)))
     settings['timeout'] = int(request.form.get('timeout', settings.get('timeout', 30)))
-    
+    settings['numberOfFiles'] = int(request.form.get('numberOfFiles', settings.get('numberOfFiles', 1)))
+
     # Handle file uploads
     files = request.files.getlist('files[]')
     indexed_files = []
@@ -148,6 +149,7 @@ def save_api_settings():
                 logger.error(f"Error processing URL {url}: {e}")
     
     return jsonify({
+        "settings" :settings,
         "success": True,
         "message": "Settings saved successfully",
         "indexed_files": indexed_files
