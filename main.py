@@ -11,6 +11,7 @@ from typing import Dict, List, Any
 from flask import Flask, render_template, request, jsonify, session
 from dotenv import load_dotenv
 import uuid
+import shutil
 
 # Import our system components
 from Cloud_LLM_Model.Core.model import Model
@@ -388,6 +389,130 @@ def toggle():
 def get_state():
     return jsonify({'state': toggle_state, 'text': 'On' if toggle_state else 'Off'})
 
+@app.route('/get_indexed_files', methods=['GET'])
+def get_indexed_files():
+    """Get a list of all indexed files"""
+    try:
+        # Get current session
+        session_data = get_or_create_session(session.get('session_id'))
+        session['session_id'] = session_data['id']
+        
+        # Get files from session data
+        indexed_files = session_data.get('indexed_files', [])
+        
+        # Also check the tmp directory for additional files
+        tmp_dir = os.path.join(os.getcwd(), 'tmp')
+        if os.path.exists(tmp_dir):
+            dir_files = os.listdir(tmp_dir)
+            # Add any files that are not already in the session data
+            for file in dir_files:
+                if file not in indexed_files and os.path.isfile(os.path.join(tmp_dir, file)):
+                    indexed_files.append(file)
+        
+        return jsonify({
+            "success": True,
+            "files": indexed_files
+        })
+    except Exception as e:
+        logger.error(f"Error getting indexed files: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# Delete a specific file
+@app.route('/delete_file', methods=['POST'])
+def delete_file():
+    """Delete a specific indexed file"""
+    try:
+        data = request.json
+        filename = data.get('filename')
+        
+        if not filename:
+            return jsonify({
+                "success": False,
+                "error": "Filename not provided"
+            }), 400
+        
+        # Get current session
+        session_data = get_or_create_session(session.get('session_id'))
+        session['session_id'] = session_data['id']
+        
+        # Remove from session data
+        if filename in session_data.get('indexed_files', []):
+            session_data['indexed_files'].remove(filename)
+        
+        # Remove file from tmp directory
+        tmp_dir = os.path.join(os.getcwd(), 'tmp')
+        file_path = os.path.join(tmp_dir, filename)
+        
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Deleted file: {filename}")
+        
+        # Remove from vector store if RAG system is loaded
+        if rag_system.is_loaded():
+            try:
+                # This is a simplified approach - you might need to adjust based on how
+                # your vector store identifies documents from specific files
+                rag_system.vector_store.delete({"source": file_path})
+                logger.info(f"Removed {filename} from vector store")
+            except Exception as e:
+                logger.warning(f"Could not remove {filename} from vector store: {e}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"File '{filename}' deleted successfully"
+        })
+    except Exception as e:
+        logger.error(f"Error deleting file: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# Delete all files
+@app.route('/delete_all_files', methods=['POST'])
+def delete_all_files():
+    """Delete all indexed files"""
+    try:
+        # Get current session
+        session_data = get_or_create_session(session.get('session_id'))
+        session['session_id'] = session_data['id']
+        
+        # Clear session data
+        session_data['indexed_files'] = []
+        
+        # Clear tmp directory
+        tmp_dir = os.path.join(os.getcwd(), 'tmp')
+        if os.path.exists(tmp_dir):
+            # This will recreate the empty directory
+            shutil.rmtree(tmp_dir)
+            os.makedirs(tmp_dir, exist_ok=True)
+        
+        # Reset vector store if RAG system is loaded
+        if rag_system.is_loaded():
+            try:
+                # Clear the entire vector store (use with caution)
+                rag_system.vector_store.clear()
+                logger.info("Cleared vector store")
+                
+                # Reinitialize the empty vector store
+                rag_system.initialize_vector_store()
+                logger.info("Reinitialized vector store")
+            except Exception as e:
+                logger.warning(f"Could not fully reset vector store: {e}")
+        
+        return jsonify({
+            "success": True,
+            "message": "All files deleted successfully"
+        })
+    except Exception as e:
+        logger.error(f"Error deleting all files: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 if __name__ == '__main__':
     # Ensure required directories exist

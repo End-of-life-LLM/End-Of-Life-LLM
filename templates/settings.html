@@ -1,64 +1,399 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Settings</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-<body class="body_finetuning">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+        }
+        .slider {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .slider-value {
+            width: 50px;
+            text-align: center;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #fileCount {
+            font-weight: bold;
+        }
+        .status-message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .delete-button {
+            background-color: #f44336;
+        }
+        .delete-button:hover {
+            background-color: #d32f2f;
+        }
+        .indexed-files {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
     <h1>API Settings</h1>
-
+    
     <form id="apiSettingsForm" enctype="multipart/form-data">
         <div class="form-group">
             <label for="apiKey">API Key:</label>
             <input type="password" id="apiKey" name="apiKey" placeholder="Paste your API key here">
         </div>
-
+        
         <div class="form-group">
             <label for="temperature">Temperature: <span id="temperatureValue">0.7</span></label>
             <div class="slider-container">
-                <input type="range" id="temperature" name="temperature" class="slider" min="0" max="1" step="0.01"
-                    value="0.7">
+                <input type="range" id="temperature" name="temperature" class="slider" min="0" max="1" step="0.01" value="0.7">
             </div>
         </div>
-
+        
         <div class="form-group">
             <label for="maxTokens">Max Tokens: <span id="maxTokensValue">1000</span></label>
             <div class="slider-container">
-                <input type="range" id="maxTokens" name="maxTokens" class="slider" min="100" max="4000" step="50"
-                    value="1000">
+                <input type="range" id="maxTokens" name="maxTokens" class="slider" min="100" max="4000" step="50" value="1000">
             </div>
         </div>
-
+        
         <div class="form-group">
             <label for="fileUpload">Upload Files:</label>
             <input type="file" id="fileUpload" name="files[]" multiple>
             <p>Files selected: <span id="fileCount">0</span></p>
         </div>
-
+        
         <div class="form-group">
             <label for="urls">URLs (one per line):</label>
             <textarea id="urls" name="urls" rows="3" placeholder="Enter URLs here, one per line"></textarea>
         </div>
-
+        
         <div class="form-group">
             <label for="timeout">Timeout (seconds): <span id="timeoutValue">30</span></label>
             <div class="slider-container">
                 <input type="range" id="timeout" name="timeout" class="slider" min="5" max="120" step="5" value="30">
             </div>
         </div>
-
+        
         <button type="button" id="saveButton">Save Settings</button>
         <button type="button" id="homeButton">Home</button>
     </form>
-
+    
     <div id="statusMessage" class="status-message" style="display: none;"></div>
-
-       
-    <script src="{{ url_for('static', filename='setting.js') }}"></script>
-
+    
+    <!-- New section for indexed files -->
+    <div class="indexed-files" id="indexedFilesContainer">
+        <h2>Indexed Files</h2>
+        <div id="indexedFilesList">Loading...</div>
+        <button type="button" id="deleteAllFilesButton" class="delete-button">Delete All Files</button>
+    </div>
+    
+    <script>
+        // Variables to store settings
+        let settings = {
+            apiKey: "",
+            temperature: 0.7,
+            maxTokens: 1000,
+            files: [],
+            urls: [],
+            timeout: 30
+        };
+        
+        // Update sliders and their displayed values
+        document.getElementById("temperature").addEventListener("input", function() {
+            settings.temperature = parseFloat(this.value);
+            document.getElementById("temperatureValue").textContent = settings.temperature;
+        });
+        
+        document.getElementById("maxTokens").addEventListener("input", function() {
+            settings.maxTokens = parseInt(this.value);
+            document.getElementById("maxTokensValue").textContent = settings.maxTokens;
+        });
+        
+        document.getElementById("timeout").addEventListener("input", function() {
+            settings.timeout = parseInt(this.value);
+            document.getElementById("timeoutValue").textContent = settings.timeout;
+        });
+        
+        // Handle API key
+        document.getElementById("apiKey").addEventListener("change", function() {
+            settings.apiKey = this.value;
+        });
+        
+        // Handle file upload
+        document.getElementById("fileUpload").addEventListener("change", function() {
+            settings.files = this.files;
+            document.getElementById("fileCount").textContent = settings.files.length;
+        });
+        
+        // Handle URLs
+        document.getElementById("urls").addEventListener("change", function() {
+            settings.urls = this.value.split("\n").filter(url => url.trim() !== "");
+        });
+        
+        // Navigate to home
+        document.getElementById("homeButton").addEventListener("click", function() {
+            window.location.href = '/home';
+        });
+        
+        // Save settings
+        document.getElementById("saveButton").addEventListener("click", function() {
+            // Create FormData object to handle file uploads
+            const formData = new FormData();
+            
+            // Add all settings to FormData
+            formData.append("apiKey", document.getElementById("apiKey").value);
+            formData.append("temperature", document.getElementById("temperature").value);
+            formData.append("maxTokens", document.getElementById("maxTokens").value);
+            formData.append("timeout", document.getElementById("timeout").value);
+            formData.append("urls", document.getElementById("urls").value);
+            
+            // Add files to FormData
+            const fileInput = document.getElementById("fileUpload");
+            if (fileInput.files.length > 0) {
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    formData.append("files[]", fileInput.files[i]);
+                }
+            }
+            
+            // Send data to server
+            fetch('/save_api_settings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Show success message
+                const statusEl = document.getElementById("statusMessage");
+                statusEl.textContent = data.message;
+                statusEl.className = "status-message success";
+                statusEl.style.display = "block";
+                
+                // Save to localStorage as well (except files)
+                localStorage.setItem("apiSettings", JSON.stringify({
+                    apiKey: document.getElementById("apiKey").value,
+                    temperature: parseFloat(document.getElementById("temperature").value), 
+                    maxTokens: parseInt(document.getElementById("maxTokens").value),
+                    urlCount: document.getElementById("urls").value.split("\n").filter(url => url.trim() !== "").length,
+                    fileCount: fileInput.files.length,
+                    timeout: parseInt(document.getElementById("timeout").value)
+                }));
+                
+                console.log("Settings saved:", data);
+                
+                // Refresh indexed files list
+                fetchIndexedFiles();
+            })
+            .catch(error => {
+                // Show error message
+                const statusEl = document.getElementById("statusMessage");
+                statusEl.textContent = "Error saving settings: " + error.message;
+                statusEl.className = "status-message error";
+                statusEl.style.display = "block";
+                
+                console.error("Error saving settings:", error);
+            });
+        });
+        
+        // Load settings from localStorage if available
+        window.addEventListener("load", function() {
+            const savedSettings = localStorage.getItem("apiSettings");
+            if (savedSettings) {
+                const parsed = JSON.parse(savedSettings);
+                
+                if (parsed.apiKey) {
+                    document.getElementById("apiKey").value = parsed.apiKey;
+                    settings.apiKey = parsed.apiKey;
+                }
+                
+                if (parsed.temperature) {
+                    document.getElementById("temperature").value = parsed.temperature;
+                    document.getElementById("temperatureValue").textContent = parsed.temperature;
+                    settings.temperature = parsed.temperature;
+                }
+                
+                if (parsed.maxTokens) {
+                    document.getElementById("maxTokens").value = parsed.maxTokens;
+                    document.getElementById("maxTokensValue").textContent = parsed.maxTokens;
+                    settings.maxTokens = parsed.maxTokens;
+                }
+                
+                if (parsed.timeout) {
+                    document.getElementById("timeout").value = parsed.timeout;
+                    document.getElementById("timeoutValue").textContent = parsed.timeout;
+                    settings.timeout = parsed.timeout;
+                }
+            }
+            
+            // Fetch indexed files
+            fetchIndexedFiles();
+        });
+        
+        // Fetch indexed files
+        function fetchIndexedFiles() {
+            fetch('/get_indexed_files')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderIndexedFiles(data.files);
+                    } else {
+                        document.getElementById("indexedFilesList").innerHTML = '<p>Failed to load indexed files.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching indexed files:', error);
+                    document.getElementById("indexedFilesList").innerHTML = '<p>Error loading indexed files.</p>';
+                });
+        }
+        
+        // Render indexed files
+        function renderIndexedFiles(files) {
+            const container = document.getElementById("indexedFilesList");
+            
+            if (!files || files.length === 0) {
+                container.innerHTML = '<p>No files indexed.</p>';
+                document.getElementById("deleteAllFilesButton").style.display = 'none';
+                return;
+            }
+            
+            document.getElementById("deleteAllFilesButton").style.display = 'block';
+            
+            let html = '';
+            files.forEach(file => {
+                html += `
+                <div class="file-item">
+                    <span>${file}</span>
+                    <button type="button" class="delete-button" onclick="deleteFile('${file}')">Delete</button>
+                </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Delete a single file
+        function deleteFile(filename) {
+            if (confirm(`Are you sure you want to delete "${filename}"?`)) {
+                fetch('/delete_file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ filename: filename })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const statusEl = document.getElementById("statusMessage");
+                        statusEl.textContent = data.message || "File deleted successfully";
+                        statusEl.className = "status-message success";
+                        statusEl.style.display = "block";
+                        
+                        // Refresh file list
+                        fetchIndexedFiles();
+                    } else {
+                        throw new Error(data.error || "Failed to delete file");
+                    }
+                })
+                .catch(error => {
+                    // Show error message
+                    const statusEl = document.getElementById("statusMessage");
+                    statusEl.textContent = "Error deleting file: " + error.message;
+                    statusEl.className = "status-message error";
+                    statusEl.style.display = "block";
+                });
+            }
+        }
+        
+        // Delete all files
+        document.getElementById("deleteAllFilesButton").addEventListener("click", function() {
+            if (confirm("Are you sure you want to delete ALL indexed files? This cannot be undone!")) {
+                fetch('/delete_all_files', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const statusEl = document.getElementById("statusMessage");
+                        statusEl.textContent = data.message || "All files deleted successfully";
+                        statusEl.className = "status-message success";
+                        statusEl.style.display = "block";
+                        
+                        // Refresh file list
+                        fetchIndexedFiles();
+                    } else {
+                        throw new Error(data.error || "Failed to delete files");
+                    }
+                })
+                .catch(error => {
+                    // Show error message
+                    const statusEl = document.getElementById("statusMessage");
+                    statusEl.textContent = "Error deleting files: " + error.message;
+                    statusEl.className = "status-message error";
+                    statusEl.style.display = "block";
+                });
+            }
+        });
+    </script>
 </body>
-
 </html>

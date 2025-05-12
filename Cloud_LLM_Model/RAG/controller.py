@@ -470,3 +470,30 @@ class RAGController:
         # like clustering, quantization, or periodic reindexing
         # Currently just logs a message
         logger.info("Index optimization is not implemented for the current vector store backend")
+
+
+    # Add these methods to your RAGController class
+
+    def clear(self):
+        """Clear all documents from the vector store"""
+        if hasattr(self, 'vector_store') and self.vector_store is not None:
+            # Implementation depends on your vector store type
+            if hasattr(self.vector_store, 'clear'):
+                self.vector_store.clear()
+            else:
+                # Alternative approach if no clear method exists
+                self.vector_store = None
+                self.initialize_vector_store()
+
+    def initialize_vector_store(self):
+        """Initialize or reinitialize the vector store"""
+        from Cloud_LLM_Model.RAG.Retrieval.vector_store import VectorStore
+        
+        # Create a new empty vector store (adjust based on your implementation)
+        self.vector_store = VectorStore(
+            embedding_service=self.embedding_service,
+            cache_enabled=self.cache_enabled
+        )
+        
+        # Save the empty index
+        self.save_index('vector_index')
