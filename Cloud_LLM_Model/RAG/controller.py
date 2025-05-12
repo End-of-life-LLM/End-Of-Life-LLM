@@ -4,8 +4,9 @@ import os
 import json
 import time
 import logging
-from typing import List, Dict, Any, Optional
 import hashlib
+import shutil
+from typing import List, Dict, Any, Optional
 
 # Import from our modules
 from .embedding_service import Embedding_Service
@@ -39,9 +40,14 @@ class RAGController:
             tier: API tier for rate limiting ('free' or 'tier1').
             cache_enabled: Whether to enable caching for embeddings and search results.
         """
+        # Use provided API key or fall back to environment variable
+        self.api_key = api_key if api_key else os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError("OpenAI API key is required. Please provide one or set OPENAI_API_KEY in env.")
+            
         # Initialize embedding service
         self.embedding_service = Embedding_Service(
-            api_key=api_key,
+            api_key=self.api_key,
             embedding_model=embedding_model,
             tier=tier,
             cache_enabled=cache_enabled
@@ -59,6 +65,10 @@ class RAGController:
         # Cache for search results
         self.query_cache = {}
         self.cache_enabled = cache_enabled
+        
+        # Initialize logger
+        self.logger = logging.getLogger("RAGController")
+        self.logger.info(f"RAG Controller initialized with embedding_model={embedding_model}")
     
     # ------------------ Indexing Functions ------------------
     
@@ -471,9 +481,6 @@ class RAGController:
         # Currently just logs a message
         logger.info("Index optimization is not implemented for the current vector store backend")
 
-
-    # Add these methods to your RAGController class
-
     def clear(self):
         """Clear all documents from the vector store"""
         if hasattr(self, 'vector_store') and self.vector_store is not None:
@@ -484,16 +491,69 @@ class RAGController:
                 # Alternative approach if no clear method exists
                 self.vector_store = None
                 self.initialize_vector_store()
+            
+            # Also clear the query cache
+            self.query_cache.clear()
+            logger.info("Vector store and query cache cleared")
 
     def initialize_vector_store(self):
         """Initialize or reinitialize the vector store"""
-        from Cloud_LLM_Model.RAG.Retrieval.vector_store import VectorStore
+        from Cloud_LLM_Model.RAG.Retrieval.vector_store import Vector_Store
         
-        # Create a new empty vector store (adjust based on your implementation)
-        self.vector_store = VectorStore(
-            embedding_service=self.embedding_service,
-            cache_enabled=self.cache_enabled
+        # Create a new empty vector store
+        self.vector_store = Vector_Store(
+            dimension=self.embedding_service.dimension
         )
         
         # Save the empty index
         self.save_index('vector_index')
+        logger.info("Vector store initialized with empty index")
+        
+    def delete_file_from_index(self, filename: str) -> bool:
+        """
+        Delete a specific file from the index.
+        
+        Args:
+            filename: Name of the file to delete.
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        try:
+            # Find documents with matching source
+            if not self.is_loaded():
+                logger.warning("Index not loaded, cannot delete file")
+                return False
+                
+            # This implementation depends on how file metadata is stored
+            # Typically, each chunk has a "source" in its metadata
+            count = 0
+            to_delete = []
+            
+            for i, metadata in enumerate(self.vector_store.metadata):
+                source = metadata.get("source", "")
+                if filename in source:
+                    to_delete.append(i)
+                    count += 1
+            
+            # Delete the chunks
+            if to_delete:
+                # Delete in reverse order to avoid index shifting issues
+                for idx in sorted(to_delete, reverse=True):
+                    self.vector_store.delete_document(idx)
+                
+                # Clear related cache entries
+                self.clear_cache()
+                
+                # Save the updated index
+                self.save_index('vector_index')
+                
+                logger.info(f"Deleted {count} chunks from file {filename}")
+                return True
+            else:
+                logger.warning(f"No documents found for file {filename}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error deleting file from index: {e}")
+            return False

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to AI Chat Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f8fa;
+            color: #333;
+        }
+        .setup-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 40px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .step:last-child {
+            border-bottom: none;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        h2 {
+            color: #2c3e50;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .api-instructions {
+            background-color: #f9f9f9;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .error-message {
+            color: #e74c3c;
+            font-weight: bold;
+            padding: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        .success-message {
+            color: #27ae60;
+            font-weight: bold;
+            padding: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <h1>Welcome to AI Chat Assistant</h1>
+        
+        <div class="step">
+            <span class="step-number">1</span>
+            <h2>Set Up Your API Key</h2>
+            <p>To get started, you'll need to provide an OpenAI API key. This key is required to access the language model services.</p>
+            
+            <div class="api-instructions">
+                <p><strong>How to get an OpenAI API key:</strong></p>
+                <ol>
+                    <li>Go to <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI API Keys</a></li>
+                    <li>Sign in or create an account</li>
+                    <li>Click on "Create new secret key"</li>
+                    <li>Copy the generated API key</li>
+                </ol>
+                <p><strong>Note:</strong> Your API key will be stored locally and will only be used to communicate with OpenAI's servers.</p>
+            </div>
+            
+            <label for="apiKey">Enter your OpenAI API Key:</label>
+            <input type="password" id="apiKey" placeholder="sk-..." required>
+            
+            <div class="loading" id="loadingIndicator">
+                <span class="spinner"></span> Validating and setting up your API key...
+            </div>
+            
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+            
+            <button id="continueButton">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('continueButton').addEventListener('click', function() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            
+            // Reset messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            if (!apiKey) {
+                errorMessage.textContent = 'Please enter a valid API key';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Check if key starts with correct prefix
+            if (!apiKey.startsWith('sk-')) {
+                errorMessage.textContent = 'API key should start with "sk-"';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            
+            // Save API key
+            const formData = new FormData();
+            formData.append('apiKey', apiKey);
+            formData.append('temperature', 0.7);
+            formData.append('maxTokens', 1000);
+            formData.append('timeout', 30);
+            formData.append('urls', '');
+            
+            fetch('/save_api_settings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                if (data.success) {
+                    // Store in localStorage
+                    localStorage.setItem('apiSettings', JSON.stringify({
+                        apiKey: apiKey,
+                        temperature: 0.7,
+                        maxTokens: 1000,
+                        timeout: 30
+                    }));
+                    
+                    successMessage.textContent = 'API key saved successfully!';
+                    successMessage.style.display = 'block';
+                    
+                    // Redirect to home page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                    }, 1500);
+                } else {
+                    throw new Error(data.message || 'Failed to save API key');
+                }
+            })
+            .catch(error => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                errorMessage.textContent = 'Error: ' + error.message;
+                errorMessage.style.display = 'block';
+            });
+        });
+
+        // Also submit form when Enter key is pressed in the API key field
+        document.getElementById('apiKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('continueButton').click();
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedSettings = localStorage.getItem('apiSettings');
+            if (savedSettings) {
+                const parsed = JSON.parse(savedSettings);
+                if (parsed.apiKey) {
+                    document.getElementById('apiKey').value = parsed.apiKey;
+                    // Auto-submit if a key is already available
+                    const autoSubmit = new URLSearchParams(window.location.search).get('autoSubmit');
+                    if (autoSubmit === 'true') {
+                        document.getElementById('continueButton').click();
+                    }
+                }
+            }
+        });
+        document.getElementById('continueButton').addEventListener('click', function() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            
+            // Reset messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            if (!apiKey) {
+                errorMessage.textContent = 'Please enter a valid API key';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Check if key starts with correct prefix
+            if (!apiKey.startsWith('sk-')) {
+                errorMessage.textContent = 'API key should start with "sk-"';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            
+            // Save API key
+            const formData = new FormData();
+            formData.append('apiKey', apiKey);
+            formData.append('temperature', 0.7);
+            formData.append('maxTokens', 1000);
+            formData.append('timeout', 30);
+            formData.append('urls', '');
+            
+            fetch('/save_api_settings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                if (data.success) {
+                    // Store in localStorage for persistence
+                    localStorage.setItem('apiSettings', JSON.stringify({
+                        apiKey: apiKey,
+                        temperature: 0.7,
+                        maxTokens: 1000,
+                        timeout: 30
+                    }));
+                    
+                    successMessage.textContent = 'API key saved successfully!';
+                    successMessage.style.display = 'block';
+                    
+                    // Redirect to home page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                    }, 1500);
+                } else {
+                    throw new Error(data.message || 'Failed to save API key');
+                }
+            })
+            .catch(error => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                errorMessage.textContent = 'Error: ' + error.message;
+                errorMessage.style.display = 'block';
+            });
+        });
+        document.getElementById('apiKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('continueButton').click();
+            }
+        });
+    </script>
+</body>
+</html>

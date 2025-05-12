@@ -1,21 +1,40 @@
 """Primary model interface for the Cloud LLM Model system."""
 
+import os
+import time
+import logging
+from typing import List, Dict, Any, Optional
 from openai import OpenAI
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
 class Model:
     """Primary model interface using OpenAI API."""
     
-    def __init__(self, api_key=None): 
+    def __init__(self, api_key=None, model_name="gpt-4.1", temperature=0.7):
         """
         Initialize the model.
         
         Args:
             api_key: OpenAI API key. If None, will try to load from environment.
+            model_name: Model name to use. Defaults to "gpt-4.1".
+            temperature: Temperature for generation. Defaults to 0.7.
         """
-        self.temperature = 0.7
+        # Use provided API key or fall back to environment variable
+        self.api_key = api_key if api_key else os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError("OpenAI API key is required. Please provide one or set OPENAI_API_KEY in env.")
+        
+        self.temperature = temperature
+        self.model_name = model_name
         self.messages = []
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=self.api_key)
+        
+        # Initialize logger
+        self.logger = logging.getLogger("Model")
+        self.logger.info(f"Model initialized with model_name={model_name}")
 
     def context_manager(self):
         """Manage context window for the model."""
@@ -41,7 +60,7 @@ class Model:
         try:
             # Make API call
             completion = self.client.chat.completions.create(
-                model="gpt-4.1",
+                model=self.model_name,
                 messages=self.messages,
                 temperature=self.temperature,
                 max_tokens=200
@@ -60,18 +79,18 @@ class Model:
             print(f"Error: {e}")
         return True
     
-    def generate_response(self, prompt: str) -> str:
+    def generate_response(self, prompt: str, max_tokens: int = 1000, timeout: int = 30) -> str:
         """
         Generate a response from the model with retry logic for connection errors.
         
         Args:
             prompt: The prompt text to send to the model
+            max_tokens: Maximum tokens in the response. Defaults to 1000.
+            timeout: Timeout in seconds. Defaults to 30.
             
         Returns:
             A string containing the model's response
         """
-        import time  # Make sure this is imported
-        
         # Add prompt to messages
         self.messages.append({"role": "user", "content": prompt})
         self.context_manager()
@@ -83,11 +102,11 @@ class Model:
             try:
                 # Make API call with timeout
                 completion = self.client.chat.completions.create(
-                    model="gpt-4.1",
+                    model=self.model_name,
                     messages=self.messages,
                     temperature=self.temperature,
-                    max_tokens=1000,  # Increased for more complete responses
-                    timeout=30  # Add timeout in seconds
+                    max_tokens=max_tokens,
+                    timeout=timeout
                 )
             
                 # Get assistant's response
@@ -102,8 +121,7 @@ class Model:
                 error_msg = str(e)
                 
                 # Log the specific error
-                import logging
-                logging.error(f"API call attempt {retry_count+1} failed: {error_msg}")
+                self.logger.error(f"API call attempt {retry_count+1} failed: {error_msg}")
                 
                 # Check if it's a connection error
                 if "Connection error" in error_msg:
@@ -111,7 +129,7 @@ class Model:
                     if retry_count < max_retries:
                         # Wait before retrying (exponential backoff)
                         backoff_time = 2 ** retry_count
-                        logging.info(f"Retrying in {backoff_time} seconds...")
+                        self.logger.info(f"Retrying in {backoff_time} seconds...")
                         time.sleep(backoff_time)
                         continue
                 else:
@@ -119,3 +137,31 @@ class Model:
                     return f"Error: {error_msg}"
                     
         return f"Failed to generate response after {max_retries} attempts due to connection issues."
+    
+    def reset_conversation(self):
+        """Reset the conversation history."""
+        self.messages = []
+        self.logger.info("Conversation history reset")
+    
+    def set_temperature(self, temperature: float):
+        """
+        Set the temperature for generation.
+        
+        Args:
+            temperature: Temperature value between 0 and 1.
+        """
+        if 0 <= temperature <= 1:
+            self.temperature = temperature
+            self.logger.info(f"Temperature set to {temperature}")
+        else:
+            self.logger.warning(f"Invalid temperature value {temperature}. Value should be between 0 and 1.")
+    
+    def set_model(self, model_name: str):
+        """
+        Set the model to use.
+        
+        Args:
+            model_name: Name of the model to use.
+        """
+        self.model_name = model_name
+        self.logger.info(f"Model set to {model_name}")
