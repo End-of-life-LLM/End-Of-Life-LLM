@@ -119,6 +119,8 @@ function renderChatHistory() {
         return;
     }
 
+    console.log("Rendering chats:", chats); // Add this debug log
+    
     chats.forEach(chat => {
         const chatItem = document.createElement('div');
         chatItem.classList.add('chat-item');
@@ -127,6 +129,7 @@ function renderChatHistory() {
             chatItem.classList.add('active');
         }
 
+        // Use preview or a default text
         chatItem.textContent = chat.preview || 'New Chat';
         chatItem.dataset.id = chat.id;
         chatItem.addEventListener('click', () => selectChat(chat.id));
@@ -143,8 +146,8 @@ function selectChat(id) {
         item.classList.toggle('active', item.dataset.id === id);
     });
 
-    // Fetch messages for this chat
-    fetch(`/select_chat/${id}`)
+    // Fetch messages for this chat - use get_chat_history instead
+    fetch('/get_chat_history')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -155,6 +158,7 @@ function selectChat(id) {
             console.error('Error selecting chat:', error);
         });
 }
+
 
 // Render messages in chat container
 function renderMessages(messages) {
