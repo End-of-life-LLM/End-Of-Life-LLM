@@ -1,11 +1,10 @@
 import os
-import time
 import re
+import time
+from typing import Union
 
-from typing import Union, List, Dict
 
 class SaveArticles:
-
     def __init__(self, save_directory: str = "articles"):
         """
         Initialize the article saving functionality.
@@ -54,5 +53,3 @@ class SaveArticles:
         except Exception as e:
             print(f"Error saving article: {e}")
             return None
-            
-    
