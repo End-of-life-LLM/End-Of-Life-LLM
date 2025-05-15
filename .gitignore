@@ -4,3 +4,9 @@ UI/package-lock.json
 UI/package.json
 .env
 *.pyc
+*.json
+*.png
+*.txt
+*.bin
+*.pkl 
+*.pdf

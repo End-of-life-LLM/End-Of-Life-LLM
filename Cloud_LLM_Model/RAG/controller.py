@@ -247,7 +247,8 @@ class RAGController:
     def generate_answer(self, question: str, context_texts: List[str], 
                         model: str = "gpt-4.1-turbo", 
                         temperature: float = 0.0,
-                        max_tokens: int = 1000) -> str:
+                        max_tokens: int = 1000,
+                        relevance_scores: List[float] = None) -> str:
         """
         Generate an answer using the LLM with improved prompt.
         
@@ -257,6 +258,7 @@ class RAGController:
             model: The LLM model to use.
             temperature: Temperature for response generation.
             max_tokens: Maximum tokens in the response.
+            relevance_scores: Optional list of relevance scores for each context.
             
         Returns:
             Generated answer as a string.
@@ -270,8 +272,9 @@ class RAGController:
         - If the context doesn't contain the answer, say "I don't have enough information to answer this question" and suggest what information might help.
         - Cite your sources using [Source X] notation when drawing information from the provided context.
         - Never make up information that isn't supported by the context.
-        - Format your answer clearly and concisely.
-        - If the context contains code, preserve code formatting in your answer."""
+        - Format your answer in plain text only. DO NOT use any fancy formatting like bold text, tables, bulleted lists, or markdown formatting.
+        - Use simple paragraph-based responses with source citations in square brackets.
+        - If the context contains code, preserve code formatting in your answer but without any syntax highlighting."""
         
         # Estimate tokens for system prompt and question
         prompt_tokens += self.token_counter.count_tokens(system_prompt, model)
@@ -284,21 +287,26 @@ class RAGController:
         max_context_tokens = 8000 - prompt_tokens - max_tokens
         current_context_tokens = 0
         
-        # Score and sort context texts by relevance to question
+        # Score and sort context texts by relevance to question if not provided
         context_with_scores = []
-        for i, context in enumerate(context_texts):
-            # Simple relevance scoring: count overlapping terms
-            question_terms = set(question.lower().split())
-            context_terms = set(context.lower().split())
-            overlap = len(question_terms.intersection(context_terms))
-            
-            # Exact phrase matching
-            exact_match = 1 if question.lower() in context.lower() else 0
-            
-            # Calculate score (prioritize exact matches and term overlap)
-            score = exact_match * 10 + overlap
-            
-            context_with_scores.append((context, score, i))
+        if relevance_scores is None:
+            for i, context in enumerate(context_texts):
+                # Simple relevance scoring: count overlapping terms
+                question_terms = set(question.lower().split())
+                context_terms = set(context.lower().split())
+                overlap = len(question_terms.intersection(context_terms))
+                
+                # Exact phrase matching
+                exact_match = 1 if question.lower() in context.lower() else 0
+                
+                # Calculate score (prioritize exact matches and term overlap)
+                score = exact_match * 10 + overlap
+                
+                context_with_scores.append((context, score, i))
+        else:
+            # Use provided relevance scores
+            for i, (context, score) in enumerate(zip(context_texts, relevance_scores)):
+                context_with_scores.append((context, score, i))
         
         # Sort contexts by score (descending)
         context_with_scores.sort(key=lambda x: x[1], reverse=True)
@@ -308,7 +316,8 @@ class RAGController:
             context_tokens = self.token_counter.count_tokens(context, model)
             
             if current_context_tokens + context_tokens <= max_context_tokens:
-                formatted_contexts.append(f"[Source {original_idx+1}]\n{context}")
+                # Include the relevance score in the context
+                formatted_contexts.append(f"[Source {original_idx+1}] (Relevance: {score:.2f})\n{context}")
                 current_context_tokens += context_tokens
             else:
                 # If we're about to exceed the limit, break
@@ -321,16 +330,16 @@ class RAGController:
         full_context = "\n\n".join(formatted_contexts)
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Context:\n{full_context}\n\nQuestion: {question}"}
+            {"role": "user", "content": f"Context:\n{full_context}\n\nQuestion: {question}\n\nRemember to provide your answer in plain text only with no fancy formatting."}
         ]
         
         # Generate answer
         return self.embedding_service.generate_chat_completion(
-            messages=messages,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
+        messages=messages,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
     
     def query(self, question: str, k: int = 5, model: str = "gpt-4.1-turbo") -> Dict[str, Any]:
         """
@@ -369,10 +378,13 @@ class RAGController:
         
         # Get context window for each result to provide more context
         expanded_texts = []
+        expanded_scores = []
         seen_ids = set()
         
         for result in search_results[:k]:  # Use top k results only
             chunk_id = result["metadata"].get("chunk_id")
+            score = result.get("score", 0)
+            
             if chunk_id is not None:
                 # Get the document and its context window
                 context_docs = self.get_context_window(chunk_id, window_size=1)
@@ -382,14 +394,29 @@ class RAGController:
                     doc_id = doc["metadata"].get("chunk_id")
                     if doc_id not in seen_ids:
                         expanded_texts.append(doc["text"])
+                        # Context window documents get a slightly reduced score
+                        expanded_scores.append(score * 0.9 if doc_id != chunk_id else score)
                         seen_ids.add(doc_id)
         
         # If we couldn't get context windows, fall back to search results
         if not expanded_texts:
             expanded_texts = [result["text"] for result in search_results[:k]]
+            expanded_scores = [result.get("score", 0) for result in search_results[:k]]
         
-        # Generate answer
-        answer = self.generate_answer(question, expanded_texts, model)
+        # Generate answer with relevance scores
+        answer = self.generate_answer(
+            question, 
+            expanded_texts, 
+            model, 
+            relevance_scores=expanded_scores
+        )
+        
+        # Ensure answer is in plain text format
+        # Add a relevance summary at the end
+        top_score = max(expanded_scores) if expanded_scores else 0
+        avg_score = sum(expanded_scores) / len(expanded_scores) if expanded_scores else 0
+        
+        answer += f"\n\nRelevance Summary: Top Relevance Score: {top_score:.2f}, Average Relevance: {avg_score:.2f}"
         
         # Record query in history for evaluation
         query_record = {
@@ -397,13 +424,19 @@ class RAGController:
             "timestamp": time.time(),
             "search_results": search_results[:k],
             "expanded_context": len(expanded_texts),
-            "answer": answer
+            "answer": answer,
+            "top_relevance": top_score,
+            "avg_relevance": avg_score
         }
         
         result = {
             "answer": answer,
             "source_documents": search_results[:k],
-            "query_record": query_record
+            "query_record": query_record,
+            "relevance_scores": {
+                "top": top_score,
+                "average": avg_score
+            }
         }
         
         # Cache the result if enabled
@@ -411,7 +444,6 @@ class RAGController:
             self.query_cache[cache_key] = result
         
         return result
-    
     # ------------------ Evaluation Functions ------------------
     
     def evaluate_retrieval(self, questions: List[str], expected_chunks: List[List[int]], k: int = 5) -> Dict[str, Any]:

@@ -82,6 +82,7 @@ class Model:
     def generate_response(self, prompt: str, max_tokens: int = 1000, timeout: int = 30) -> str:
         """
         Generate a response from the model with retry logic for connection errors.
+        Includes instructions for plain text output.
         
         Args:
             prompt: The prompt text to send to the model
@@ -91,8 +92,19 @@ class Model:
         Returns:
             A string containing the model's response
         """
+        # Add system message to enforce plain text formatting
+        system_message = {
+            "role": "system",
+            "content": "You are a helpful assistant that provides information in plain text format only. Do not use any fancy formatting such as bold text, tables, markdown formatting, or bullet points. Use simple paragraphs with clear language."
+        }
+        
         # Add prompt to messages
-        self.messages.append({"role": "user", "content": prompt})
+        user_message = {"role": "user", "content": prompt}
+        
+        # Create messages array with system message
+        messages = [system_message, user_message]
+        
+        # Store in conversation history
         self.context_manager()
         
         max_retries = 3
@@ -103,7 +115,7 @@ class Model:
                 # Make API call with timeout
                 completion = self.client.chat.completions.create(
                     model=self.model_name,
-                    messages=self.messages,
+                    messages=messages,
                     temperature=self.temperature,
                     max_tokens=max_tokens,
                     timeout=timeout
