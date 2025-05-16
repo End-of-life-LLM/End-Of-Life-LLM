@@ -537,3 +537,64 @@ class FileManager:
         except Exception as e:
             logger.error(f"Error getting chat list: {str(e)}")
             return []
+        
+
+    def save_indexed_files(self, session_id: str, file_list: List[str]) -> bool:
+        """
+        Save the list of indexed files for a session.
+        
+        Args:
+            session_id: ID of the session
+            file_list: List of indexed file names
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            if not session_id:
+                logger.warning("No session ID provided, cannot save indexed files")
+                return False
+                
+            session_data = self.get_or_create_session(session_id)
+            
+            # Update indexed files list
+            session_data['indexed_files'] = file_list
+            
+            # Save to disk
+            self.save_chat_to_disk(session_id, session_data)
+            logger.info(f"Saved {len(file_list)} indexed files for session {session_id}")
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error saving indexed files: {str(e)}")
+            return False
+        
+    def save_indexed_files(self, session_id: str, file_list: List[str]) -> bool:
+        """
+        Save the list of indexed files for a session.
+        
+        Args:
+            session_id: ID of the session
+            file_list: List of indexed file names
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            if not session_id:
+                logger.warning("No session ID provided, cannot save indexed files")
+                return False
+                
+            session_data = self.get_or_create_session(session_id)
+            
+            # Update indexed files list
+            session_data['indexed_files'] = file_list
+            
+            # Save to disk
+            self.save_chat_to_disk(session_id, session_data)
+            logger.info(f"Saved {len(file_list)} indexed files for session {session_id}")
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error saving indexed files: {str(e)}")
+            return False

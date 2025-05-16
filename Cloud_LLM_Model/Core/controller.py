@@ -105,9 +105,9 @@ class Controller:
                 cache_enabled=True
             )
             
-            # Initialize article controller for web searches
+            # Initialize article controller for web searches with increased max_results (from 5 to 100)
             self.article_controller = WebArticleManager(
-                max_results=5, 
+                max_results=100,  # Increased from 5 to 100
                 save_directory=self.articles_dir
             )
             
@@ -121,6 +121,7 @@ class Controller:
             logger.error(f"Traceback: {traceback.format_exc()}")
             return False
         
+
     def _load_existing_vector_index(self) -> bool:
         """
         Load existing vector index if available.
@@ -131,15 +132,40 @@ class Controller:
         try:
             if os.path.exists(self.vector_index_dir) and self.rag_controller is not None:
                 logger.info("Loading existing vector index...")
-                self.rag_controller.load_index(self.vector_index_dir)
-                stats = self.rag_controller.get_index_stats()
-                logger.info(f"Vector index loaded: {stats}")
-                return True
+                success = self.rag_controller.load_index(self.vector_index_dir)
+                
+                if success:
+                    stats = self.rag_controller.get_index_stats()
+                    logger.info(f"Vector index loaded successfully with {stats.get('document_count', 0)} documents")
+                    return True
+                else:
+                    logger.warning("Failed to load vector index - will attempt to create a new one")
+                    
+                    # Try to create an empty index
+                    try:
+                        if hasattr(self.rag_controller, 'clear'):
+                            self.rag_controller.clear()
+                        
+                        # Create a new directory if it doesn't exist
+                        os.makedirs(self.vector_index_dir, exist_ok=True)
+                        
+                        # Save the empty index
+                        self.rag_controller.save_index(self.vector_index_dir)
+                        logger.info("Created new empty vector index")
+                    except Exception as e:
+                        logger.error(f"Error creating new vector index: {str(e)}")
+            else:
+                if not os.path.exists(self.vector_index_dir):
+                    logger.info("Vector index directory does not exist - will be created when needed")
+                if self.rag_controller is None:
+                    logger.info("RAG controller not initialized - will be done when API key is provided")
+            
             return False
         except Exception as e:
             logger.error(f"Error loading vector index: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
-    
     #----------------------------------------------------------------------
     # Chat session management methods (now using FileManager)
     #----------------------------------------------------------------------
@@ -622,8 +648,8 @@ class Controller:
                     api_key=self.api_key  # Pass API key to enable image analysis
                 )
                 
-                # Handle file uploads - limit to the specified number if provided
-                max_files = int(form_data.get('numberOfFiles', 5))
+                # Handle file uploads - use maximum number from form data or default to 100
+                max_files = int(form_data.get('numberOfFiles', 100))
                 files_to_process = uploaded_files[:max_files]
                 
                 for file in files_to_process:
@@ -698,7 +724,7 @@ class Controller:
                                 })
                                 continue  # Skip to next file
                         
-                        # Process non-PDF files (original code)
+                        # Process non-PDF files
                         else:
                             # Add to session's indexed files list if not already there
                             if file.filename not in session_data.get('indexed_files', []):
@@ -755,23 +781,144 @@ class Controller:
                 search_queries = form_data['searchQueries'].split('\n')
                 search_queries = [q.strip() for q in search_queries if q.strip()]
 
-            # Set max articles per query limit
-            max_articles_per_query = 5  # Default value
+            # Process URLs
+            urls = []
+            if 'urls' in form_data and form_data['urls']:
+                # Split by newline and filter out empty lines
+                urls = form_data['urls'].split('\n')
+                urls = [u.strip() for u in urls if u.strip()]
+
+            # Set max articles per query limit - increase default from 5 to 100
+            max_articles_per_query = 100  # Increased default value
             if 'maxArticlesPerQuery' in form_data and form_data['maxArticlesPerQuery']:
                 try:
                     max_articles_per_query = int(form_data['maxArticlesPerQuery'])
                 except ValueError:
                     logger.warning("Invalid maxArticlesPerQuery value, using default")
                     
-            # The rest of the original method dealing with search queries and URLs
-            # ...
+            # Update the article_controller's max_results
+            if self.article_controller:
+                self.article_controller.searcher.max_results = max_articles_per_query
+                    
+            # Process search queries and URLs
+            search_results = []
+            if search_queries and self.article_controller:
+                for query in search_queries:  # Remove limit on number of queries to process
+                    try:
+                        # Set time limit per query (increased to 120 seconds)
+                        query_results = self.article_controller.fetch_and_save_related_articles(
+                            query=query,
+                            save_format='file',
+                            time_limit_seconds=120  # Doubled time limit
+                        )
+                        
+                        if query_results:
+                            # Index the articles if RAG is enabled
+                            if self.rag_controller and self.rag_controller.is_loaded():
+                                for article in query_results:
+                                    if 'filepath' in article:
+                                        # Add to session's indexed files
+                                        filename = os.path.basename(article['filepath'])
+                                        if filename not in session_data.get('indexed_files', []):
+                                            if 'indexed_files' not in session_data:
+                                                session_data['indexed_files'] = []
+                                            session_data['indexed_files'].append(filename)
+                                        
+                                        # Index the article
+                                        chunks = self.rag_controller.index_text_file(article['filepath'])
+                                        logger.info(f"Indexed {chunks} chunks from article: {article['title']}")
+                                
+                                # Save the updated index after processing all articles
+                                self.rag_controller.save_index('vector_index')
+                            
+                            # Add to search results
+                            search_results.append({
+                                'query': query,
+                                'articles': len(query_results),
+                                'titles': [r['title'] for r in query_results]
+                            })
+                    except Exception as e:
+                        logger.error(f"Error processing search query '{query}': {str(e)}")
+                        search_results.append({
+                            'query': query,
+                            'error': str(e)
+                        })
+
+            # Process individual URLs - remove the limit on number of URLs to process
+            url_results = []
+            if urls and self.article_controller:
+                for url in urls:  # Process all URLs without limit
+                    try:
+                        # Fetch the article content
+                        content = self.article_controller.searcher.fetch_article(url)
+                        
+                        if content:
+                            # Extract title from URL if needed
+                            title = url.split('/')[-1].replace('-', ' ').replace('_', ' ')
+                            if '.' in title:
+                                title = title.split('.')[0]
+                            
+                            # Save the article
+                            filepath = self.article_controller.saver.save_article(
+                                title=title,
+                                content=content,
+                                url=url,
+                                format='file'
+                            )
+                            
+                            if filepath:
+                                # Add to session's indexed files
+                                filename = os.path.basename(filepath)
+                                if filename not in session_data.get('indexed_files', []):
+                                    if 'indexed_files' not in session_data:
+                                        session_data['indexed_files'] = []
+                                    session_data['indexed_files'].append(filename)
+                                
+                                # Index the article if RAG is enabled
+                                if self.rag_controller and self.rag_controller.is_loaded():
+                                    chunks = self.rag_controller.index_text_file(filepath)
+                                    logger.info(f"Indexed {chunks} chunks from URL: {url}")
+                                    
+                                    # Save the index after each file is processed
+                                    self.rag_controller.save_index('vector_index')
+                                
+                                # Add to URL results
+                                url_results.append({
+                                    'url': url,
+                                    'title': title,
+                                    'success': True,
+                                    'filepath': filepath
+                                })
+                            else:
+                                url_results.append({
+                                    'url': url,
+                                    'success': False,
+                                    'error': "Failed to save article"
+                                })
+                        else:
+                            url_results.append({
+                                'url': url,
+                                'success': False,
+                                'error': "No content fetched"
+                            })
+                    except Exception as e:
+                        logger.error(f"Error processing URL '{url}': {str(e)}")
+                        url_results.append({
+                            'url': url,
+                            'success': False,
+                            'error': str(e)
+                        })
+
+            # Save the updated session
+            self.file_manager.save_chat_to_disk(session_data['id'], session_data)
 
             # Return success response
             return {
                 "success": True,
                 "session_id": session_data['id'],
                 "files": result_files,
-                # Other return fields...
+                "search_results": search_results,
+                "url_results": url_results
             }
             
         except Exception as e:
