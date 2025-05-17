@@ -9,7 +9,6 @@ import threading
 import time
 from flask import Flask, render_template, request, jsonify, session, redirect
 from dotenv import load_dotenv
-from Cloud_LLM_Model.RAG.controller import RAGController
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Main")
@@ -365,7 +364,7 @@ def fetch_articles():
     global controller, fetch_process
     
     # Check if already fetching
-    if fetch_process["active"]:
+    if fetch_process.get("active", False):
         return jsonify({
             "success": False,
             "message": "A fetch process is already running. Please wait for it to complete or cancel it."
@@ -407,42 +406,50 @@ def fetch_articles():
             logger.info("Using API key from session for embedding")
             controller.api_key = api_key
     
-    # Ensure RAG controller is ready - use our new helper function
-    can_embed = ensure_rag_controller_ready(controller, session_data)
+    # Check if we can embed by getting system info
+    system_info = controller.get_system_info()
+    can_embed = system_info.get("api_key_set", False) and system_info.get("model_initialized", False)
     
-    # Update controller's article manager max_results if needed
-    if controller.article_controller:
-        if controller.article_controller.searcher.max_results < max_articles:
-            controller.article_controller.searcher.max_results = max_articles
-            logger.info(f"Updated article manager max_results to {max_articles}")
+    # If not initialized but API key is available, initialize components
+    if controller.api_key and not system_info.get("model_initialized", False):
+        try:
+            controller.initialize_components(controller.api_key)
+            # Update system info and embedding capability
+            system_info = controller.get_system_info()
+            can_embed = system_info.get("model_initialized", False)
+            logger.info("Initialized components with API key")
+        except Exception as e:
+            logger.error(f"Failed to initialize components: {str(e)}")
+            can_embed = False
     
     # Initialize fetch process
-    fetch_process["active"] = True
-    fetch_process["start_time"] = time.time()
-    fetch_process["end_time"] = fetch_process["start_time"] + (fetch_duration * 60)
-    fetch_process["duration"] = fetch_duration
-    fetch_process["count"] = 0
-    fetch_process["embedded_count"] = 0  # New counter for successfully embedded articles
-    fetch_process["embedding_failures"] = 0  # New counter for embedding failures
-    fetch_process["search_query"] = search_query
-    fetch_process["urls"] = url_list
-    fetch_process["cancel_requested"] = False
-    fetch_process["status"] = "running"
-    fetch_process["max_articles"] = max_articles
-    fetch_process["session_id"] = session_id
-    fetch_process["message"] = "Initializing..."
-    
-    fetch_process["can_embed"] = can_embed
+    fetch_process = {
+        "active": True,
+        "start_time": time.time(),
+        "end_time": time.time() + (fetch_duration * 60),
+        "duration": fetch_duration,
+        "count": 0,
+        "embedded_count": 0,
+        "embedding_failures": 0,
+        "search_query": search_query,
+        "urls": url_list,
+        "cancel_requested": False,
+        "status": "running",
+        "max_articles": max_articles,
+        "session_id": session_id,
+        "message": "Initializing...",
+        "can_embed": can_embed
+    }
     
     # If there are direct URLs, process them immediately
     if url_list:
         # Process URLs in a separate thread to avoid blocking
-        threading.Thread(target=process_urls, args=(url_list, controller, request.form)).start()
+        threading.Thread(target=process_urls, args=(url_list, request.form)).start()
         fetch_process["message"] = f"Processing {len(url_list)} URLs with direct embedding" if can_embed else f"Processing {len(url_list)} URLs (embedding unavailable)"
         
     # If there's a search query, start the timed search in a separate thread
     if search_query:
-        threading.Thread(target=run_search_fetch, args=(search_query, fetch_duration, controller, request.form)).start()
+        threading.Thread(target=run_search_fetch, args=(search_query, fetch_duration, request.form)).start()
         if fetch_process["message"] == "Initializing...":
             fetch_process["message"] = f"Running search for '{search_query}' with direct embedding" if can_embed else f"Running search for '{search_query}' (embedding unavailable)"
     
@@ -456,14 +463,50 @@ def fetch_articles():
         "embedding_enabled": can_embed,
         "urls_count": len(url_list) if url_list else 0
     })
-def run_search_fetch(query, duration, controller, form_data):
-    """Run the search-based article fetch process with direct embedding."""
-    global fetch_process
+
+
+
+def run_search_fetch(query, duration, form_data):
+    """Run the search-based article fetch process with direct embedding.
     
-    logger.info(f"Starting search fetch with direct embedding for query: {query}, duration: {duration} minutes")
+    Args:
+        query: The search query string
+        duration: Duration in minutes to run the search process
+        form_data: Dictionary with form data, including session_id
+        
+    Returns:
+        Dict with status information
+    """
+    global controller, fetch_process
+    
+    # Initialize the fetch process state dictionary if it doesn't exist
+    if 'fetch_process' not in globals():
+        fetch_process = {
+            "running": True,
+            "status": "running",
+            "start_time": time.time(),
+            "end_time": 0,
+            "count": 0,
+            "embedded_count": 0,
+            "embedding_failures": 0,
+            "cancel_requested": False,
+            "max_articles": 100
+        }
+    else:
+        # Reset the fetch process state
+        fetch_process["running"] = True
+        fetch_process["status"] = "running"
+        fetch_process["start_time"] = time.time()
+        fetch_process["end_time"] = 0
+        fetch_process["count"] = 0
+        fetch_process["embedded_count"] = 0
+        fetch_process["embedding_failures"] = 0
+        fetch_process["cancel_requested"] = False
+    
+    logger.info(f"Starting search fetch for query: {query}, duration: {duration} minutes")
     
     try:
-        # Get current session
+        # Get current session using the global controller
         session_id = form_data.get('session_id')
         session_data = controller.get_or_create_session(session_id)
         
@@ -471,21 +514,23 @@ def run_search_fetch(query, duration, controller, form_data):
         end_time = time.time() + (duration * 60)
         
         # Maximum number of articles to fetch
-        max_articles = fetch_process.get("max_articles", 100)
+        max_articles = fetch_process.get("max_articles", 3)
         
-        # Set max_articles on the searcher object
-        if controller.article_controller:
-            controller.article_controller.searcher.max_results = max_articles
+        # Ensure API key is available and components are initialized
+        if not controller.api_key:
+            logger.error("API key not set, cannot perform search fetch")
+            return {
+                "success": False,
+                "error": "API key not set",
+                "status": "error"
+            }
+            
+        # Initialize components if needed
+        if not controller.get_system_info()["model_initialized"]:
+            controller.initialize_components(controller.api_key)
         
-        # ENHANCED: Initialize RAG if needed for direct embedding
-        if controller.rag_controller is None and controller.api_key:
-            logger.info("Initializing RAG controller for direct embedding")
-            controller.rag_controller = RAGController(
-                api_key=controller.api_key,
-                embedding_model="text-embedding-3-large",
-                cache_enabled=True
-            )
-            # Load existing vector store if available
+        # Load existing vector index if not already loaded
+        if not controller.get_system_info()["rag_index_loaded"]:
             controller._load_existing_vector_index()
         
         # Initialize counters for logging
@@ -496,87 +541,61 @@ def run_search_fetch(query, duration, controller, form_data):
         # Continue fetching until time's up or cancelled
         while time.time() < end_time and not fetch_process["cancel_requested"]:
             try:
-                # Use the article controller to fetch articles
-                if controller.article_controller:
-                    # Set time limit for this batch (remaining time or 60 seconds, whichever is less)
-                    time_remaining = max(1, int(end_time - time.time()))
-                    batch_time_limit = min(120, time_remaining)  # Use 120 seconds
-                    
-                    # Fetch articles - use save_format='file' to save to disk
-                    results = controller.article_controller.fetch_and_save_related_articles(
-                        query=query,
-                        save_format='file',
-                        time_limit_seconds=batch_time_limit
-                    )
-                    
-                    # Process results
-                    if results:
-                        batch_size = len(results)
-                        fetch_process["count"] += batch_size
-                        successfully_fetched += batch_size
-                        
-                        # ENHANCED: Always try to index articles regardless of current RAG state
-                        for article in results:
-                            if 'filepath' in article:
-                                try:
-                                    # Add the file to the session's indexed files
-                                    filename = os.path.basename(article['filepath'])
-                                    if filename not in session_data.get('indexed_files', []):
-                                        if 'indexed_files' not in session_data:
-                                            session_data['indexed_files'] = []
-                                        session_data['indexed_files'].append(filename)
-                                    
-                                    # Index the article if RAG is available
-                                    if controller.rag_controller and controller.rag_controller.is_loaded():
-                                        chunks = controller.rag_controller.index_text_file(article['filepath'])
-                                        logger.info(f"✓ Successfully indexed {chunks} chunks from article: {article['title']}")
-                                        successfully_embedded += 1
-                                        fetch_process["embedded_count"] = fetch_process.get("embedded_count", 0) + 1
-                                        
-                                        # Enable RAG if not already enabled
-                                        if not controller.rag_enabled:
-                                            # Save original state if this is the first time
-                                            if not fetch_process.get("rag_was_enabled", False):
-                                                fetch_process["rag_was_enabled"] = controller.rag_enabled
-                                            
-                                            controller.rag_enabled = True
-                                            logger.info("Automatically enabled RAG system after successful embedding")
-                                    else:
-                                        logger.warning(f"RAG controller not ready for embedding: {article['title']}")
-                                        embedding_failures += 1
-                                        fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
-                                        
-                                except Exception as e:
-                                    logger.error(f"Error indexing article: {e}")
-                                    import traceback
-                                    logger.error(f"Traceback: {traceback.format_exc()}")
-                                    embedding_failures += 1
-                                    fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
-                                    fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
-                        
-                        # Save the updated index if we have a RAG controller
-                        if controller.rag_controller and controller.rag_controller.is_loaded():
-                            controller.rag_controller.save_index('vector_index')
-                        
-                        # Save the updated session
-                        controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
-                        
-                        logger.info(f"Fetched {batch_size} articles, total: {fetch_process['count']}, embedded: {successfully_embedded}")
-                    
-                    # Check if we've reached the maximum limit
-                    if fetch_process["count"] >= max_articles:
-                        logger.info(f"Reached maximum number of articles ({max_articles})")
-                        break
-                    
-                    # Check if the search has exhausted all results
-                    if controller.article_controller.searcher.result_found >= controller.article_controller.searcher.max_results:
-                        logger.info("Search has exhausted all available results")
-                        break
-                        
-                else:
-                    logger.warning("Article controller not initialized")
+                # Check if we've reached the maximum limit
+                if fetch_process["count"] >= max_articles:
+                    logger.info(f"Reached maximum number of articles ({max_articles})")
                     break
                 
+                # Set time limit for this batch (remaining time or 120 seconds, whichever is less)
+                time_remaining = max(1, int(end_time - time.time()))
+                batch_time_limit = min(120, time_remaining)
+                
+                # Use save_api_settings method to process search queries
+                search_form = {
+                    'session_id': session_id,
+                    'searchQueries': query,
+                    'maxArticlesPerQuery': max_articles - fetch_process["count"],
+                    'numberOfFiles': max_articles
+                }
+                
+                # Process the search query using the global controller
+                batch_result = controller.save_api_settings(search_form, [])
+                
+                # Check for success and process results
+                if batch_result.get('success') and 'search_results' in batch_result:
+                    search_results = batch_result['search_results']
+                    
+                    # Calculate number of articles fetched in this batch
+                    batch_articles = 0
+                    for result in search_results:
+                        if 'articles' in result:
+                            batch_articles += result['articles']
+                    
+                    # Update counters
+                    fetch_process["count"] += batch_articles
+                    successfully_fetched += batch_articles
+                    
+                    # Get indexed files after the operation
+                    indexed_files = controller.get_indexed_files(session_id)
+                    
+                    # If RAG is not enabled but files were indexed, enable it
+                    if batch_articles > 0 and not controller.get_rag_enabled()["state"]:
+                        controller.set_rag_enabled(True)
+                        logger.info("Automatically enabled RAG system after successful embedding")
+                    
+                    # Log progress
+                    logger.info(f"Fetched {batch_articles} articles, total: {fetch_process['count']}")
+                    
+                    # If no articles were found in this batch, we might have exhausted results
+                    if batch_articles == 0:
+                        logger.info("Search appears to have exhausted all available results")
+                        break
+                else:
+                    # Log error and continue
+                    logger.warning("Failed to fetch articles in this batch")
+                    if 'error' in batch_result:
+                        logger.warning(f"Error details: {batch_result['error']}")
+                    
                 # Add a small delay between fetches to avoid rate limiting
                 time.sleep(3)  # 3 seconds between fetches
                 
@@ -587,22 +606,48 @@ def run_search_fetch(query, duration, controller, form_data):
                 time.sleep(5)  # Wait a bit longer after an error
         
         # Mark as completed
-        finish_fetch_process("completed" if not fetch_process["cancel_requested"] else "cancelled")
+        fetch_process["status"] = "completed" if not fetch_process["cancel_requested"] else "cancelled"
+        fetch_process["end_time"] = time.time()
+        fetch_process["running"] = False
         
-        logger.info(f"Search fetch completed with status: {fetch_process['status']}, fetched {fetch_process['count']} articles, successfully embedded: {successfully_embedded}, embedding failures: {embedding_failures}")
+        # Get final system info
+        final_stats = controller.get_system_info()
+        
+        logger.info(f"Search fetch completed with status: {fetch_process['status']}, fetched {fetch_process['count']} articles")
         
         # Save the session one final time to ensure all indexed files are saved
         controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
+        
+        return {
+            "success": True,
+            "status": fetch_process["status"],
+            "count": fetch_process["count"],
+            "duration": round((fetch_process["end_time"] - fetch_process["start_time"]) / 60, 1),
+            "rag_enabled": controller.get_rag_enabled()["state"],
+            "indexed_files": len(controller.get_indexed_files(session_id).get('files', [])),
+            "system_info": final_stats
+        }
         
     except Exception as e:
         logger.error(f"Error in run_search_fetch: {str(e)}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
-        finish_fetch_process("error")      
+        
+        # Mark as error
+        fetch_process["status"] = "error"
+        fetch_process["end_time"] = time.time()
+        fetch_process["running"] = False
+        
+        return {
+            "success": False,
+            "error": str(e),
+            "status": "error"
+        }
+    
 
-def process_urls(url_list, controller, form_data):
+def process_urls(url_list, form_data):
     """Process the given URLs to fetch articles and embed them directly."""
-    global fetch_process
+    global controller, fetch_process
     
     logger.info(f"Processing {len(url_list)} URLs with direct embedding")
     
@@ -615,6 +660,10 @@ def process_urls(url_list, controller, form_data):
         successfully_processed = 0
         embedding_failures = 0
         
+        # Get system info to check embedding capability
+        system_info = controller.get_system_info()
+        can_embed = system_info.get("api_key_set", False) and system_info.get("model_initialized", False)
+        
         for i, url in enumerate(url_list):
             if fetch_process["cancel_requested"]:
                 logger.info("URL processing cancelled")
@@ -623,80 +672,51 @@ def process_urls(url_list, controller, form_data):
             logger.info(f"Processing URL {i+1}/{len(url_list)}: {url}")
             
             try:
-                # Use the article controller to fetch the article content
-                if controller.article_controller:
-                    # Fetch the article directly using the WebArticleSearcher's fetch_article method
-                    content = controller.article_controller.searcher.fetch_article(url)
+                # Use save_api_settings to process the URL
+                url_form_data = {
+                    'session_id': session_id,
+                    'urls': url
+                }
+                
+                # Process the URL using controller's save_api_settings method
+                result = controller.save_api_settings(url_form_data, [])
+                
+                # Check if URL was processed successfully
+                if result.get('success') and 'url_results' in result:
+                    url_results = result['url_results']
                     
-                    if content:
-                        # Extract a title from the URL if needed
-                        title = url.split('/')[-1].replace('-', ' ').replace('_', ' ')
-                        if '.' in title:
-                            title = title.split('.')[0]
+                    # If we have results, increment counters
+                    if url_results and any(r.get('success', False) for r in url_results):
+                        # Increment count
+                        fetch_process["count"] += 1
                         
-                        # Save the article
-                        filepath = controller.article_controller.saver.save_article(
-                            title=title,
-                            content=content,
-                            url=url,
-                            format='file'
-                        )
-                        
-                        if filepath:
-                            # Add the file to the session's indexed files
-                            filename = os.path.basename(filepath)
-                            if filename not in session_data.get('indexed_files', []):
-                                if 'indexed_files' not in session_data:
-                                    session_data['indexed_files'] = []
-                                session_data['indexed_files'].append(filename)
+                        # Check if embedding was successful by looking at system info
+                        current_system_info = controller.get_system_info()
+                        if can_embed and current_system_info.get("rag_index_loaded", False):
+                            successfully_processed += 1
+                            fetch_process["embedded_count"] = fetch_process.get("embedded_count", 0) + 1
                             
-                            # ENHANCED: Direct embedding - always try to index regardless of RAG state
-                            try:
-                                # Ensure RAG controller is ready
-                                rag_ready = ensure_rag_controller_ready(controller, session_data)
+                            # Enable RAG if not already enabled
+                            rag_state = controller.get_rag_enabled()
+                            if not rag_state["state"]:
+                                # Save original state if this is the first time
+                                if not fetch_process.get("rag_was_enabled", False):
+                                    fetch_process["rag_was_enabled"] = rag_state["state"]
                                 
-                                if rag_ready:
-                                    chunks = controller.rag_controller.index_text_file(filepath)
-                                    logger.info(f"✓ Successfully indexed {chunks} chunks from URL: {url}")
-                                    
-                                    # Save the index after each file for robustness
-                                    controller.rag_controller.save_index('vector_index')
-                                    
-                                    # Enable RAG if not already enabled
-                                    if not controller.rag_enabled:
-                                        # Save original state if this is the first time
-                                        if not fetch_process.get("rag_was_enabled", False):
-                                            fetch_process["rag_was_enabled"] = controller.rag_enabled
-                                        
-                                        controller.rag_enabled = True
-                                        logger.info("Automatically enabled RAG system after successful embedding")
-                                    
-                                    successfully_processed += 1
-                                    fetch_process["embedded_count"] = fetch_process.get("embedded_count", 0) + 1
-                                else:
-                                    logger.warning(f"RAG controller not ready for embedding: {url}")
-                                    embedding_failures += 1
-                                    fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
-                                    
-                            except Exception as e:
-                                logger.error(f"Error indexing URL content: {e}")
-                                import traceback
-                                logger.error(f"Traceback: {traceback.format_exc()}")
-                                embedding_failures += 1
-                            
-                            # Increment count
-                            fetch_process["count"] += 1
-                            
-                            # Save the updated session periodically
-                            if i % 5 == 0 or i == len(url_list) - 1:  # Every 5 URLs or the last one
-                                controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
+                                controller.set_rag_enabled(True)
+                                logger.info("Automatically enabled RAG system after successful embedding")
                         else:
-                            logger.warning(f"Failed to save article from URL: {url}")
+                            # Log if embedding wasn't possible
+                            if not can_embed:
+                                logger.warning(f"Embedding not available for URL: {url}")
+                            embedding_failures += 1
+                            fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
                     else:
-                        logger.warning(f"No content fetched from URL: {url}")
+                        logger.warning(f"Failed to process URL: {url}")
                 else:
-                    logger.warning("Article controller not initialized")
-                    break
+                    # Log error details if available
+                    error_msg = result.get('error', 'Unknown error')
+                    logger.warning(f"Failed to process URL: {url}. Error: {error_msg}")
                 
                 # Add a small delay between URLs to avoid rate limiting
                 time.sleep(1)
@@ -708,18 +728,24 @@ def process_urls(url_list, controller, form_data):
         
         logger.info(f"Completed processing {len(url_list)} URLs. Successfully embedded: {successfully_processed}, Embedding failures: {embedding_failures}")
         
-        # Save the session one final time to ensure all indexed files are saved
-        controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
-        
         # If no search query and all URLs processed, mark as completed
         if not fetch_process["search_query"]:
-            finish_fetch_process("completed")
+            # Mark process as completed
+            fetch_process["status"] = "completed"
+            fetch_process["end_time"] = time.time()
+            fetch_process["active"] = False
             
     except Exception as e:
         logger.error(f"Error in process_urls: {str(e)}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
-        finish_fetch_process("error")
+        
+        # Mark as error
+        fetch_process["status"] = "error"
+        fetch_process["end_time"] = time.time()
+        fetch_process["active"] = False
+
+
 
 @app.route('/fetch_status', methods=['GET'])
 def fetch_status():
@@ -778,6 +804,8 @@ def fetch_status():
         "message": status_message,
         "rag_enabled": controller.rag_enabled if hasattr(controller, "rag_enabled") else False
     })
+
+
 @app.route('/cancel_fetch', methods=['POST'])
 def cancel_fetch():
     """Cancel the current fetch process"""
@@ -800,6 +828,8 @@ def cancel_fetch():
         "success": True,
         "message": fetch_process["message"]
     })
+
+
 def finish_fetch_process(status="completed"):
     """Properly finish the fetch process, updating status and restoring settings if needed."""
     global fetch_process, controller
@@ -849,6 +879,7 @@ def finish_fetch_process(status="completed"):
             # Let the user make that decision
             logger.info("Keeping RAG enabled after embedding articles")
     """
+    
 if __name__ == '__main__':
     logger.info("Starting Cloud LLM Model system")
     
