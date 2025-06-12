@@ -148,7 +148,8 @@ def save_api_settings():
         'maxTokens': request.form.get('maxTokens'),
         'timeout': request.form.get('timeout'),
         'numberOfFiles': request.form.get('numberOfFiles'),
-        'urls': request.form.get('urls', '')
+        'urls': request.form.get('urls', ''),
+        'searchQueries': request.form.get('searchQueries', '')
     }
     
     # Save settings via controller
@@ -358,6 +359,55 @@ def delete_all_files():
         return jsonify(result[0]), result[1]
     
     return jsonify(result)
+
+@app.route('/auto_enable_rag', methods=['POST'])
+def auto_enable_rag():
+    """Auto-enable RAG when documents are successfully indexed"""
+    global controller
+    
+    try:
+        # Check if we have indexed documents
+        system_info = controller.get_system_info()
+        
+        if (system_info.get("rag_index_loaded", False) and 
+            system_info.get("index_stats", {}).get("document_count", 0) > 0):
+            
+            # Only auto-enable if RAG is currently disabled
+            current_rag_state = controller.get_rag_enabled()["state"]
+            
+            if not current_rag_state:
+                # Enable RAG
+                result = controller.set_rag_enabled(True)
+                logger.info("Auto-enabled RAG after successful document indexing")
+                
+                return jsonify({
+                    "success": True,
+                    "auto_enabled": True,
+                    "message": "RAG automatically enabled due to indexed documents",
+                    "rag_state": result
+                })
+            else:
+                return jsonify({
+                    "success": True,
+                    "auto_enabled": False,
+                    "message": "RAG was already enabled",
+                    "rag_state": current_rag_state
+                })
+        else:
+            return jsonify({
+                "success": True,
+                "auto_enabled": False,
+                "message": "No indexed documents found",
+                "document_count": system_info.get("index_stats", {}).get("document_count", 0)
+            })
+            
+    except Exception as e:
+        logger.error(f"Error in auto_enable_rag: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @app.route('/fetch_articles', methods=['POST'])
 def fetch_articles():
     """Start the article fetching process with immediate embedding."""
@@ -464,19 +514,8 @@ def fetch_articles():
         "urls_count": len(url_list) if url_list else 0
     })
 
-
-
 def run_search_fetch(query, duration, form_data):
-    """Run the search-based article fetch process with direct embedding.
-    
-    Args:
-        query: The search query string
-        duration: Duration in minutes to run the search process
-        form_data: Dictionary with form data, including session_id
-        
-    Returns:
-        Dict with status information
-    """
+    """Run the search-based article fetch process with direct embedding and auto-enable RAG."""
     global controller, fetch_process
     
     # Initialize the fetch process state dictionary if it doesn't exist
@@ -578,11 +617,6 @@ def run_search_fetch(query, duration, form_data):
                     # Get indexed files after the operation
                     indexed_files = controller.get_indexed_files(session_id)
                     
-                    # If RAG is not enabled but files were indexed, enable it
-                    if batch_articles > 0 and not controller.get_rag_enabled()["state"]:
-                        controller.set_rag_enabled(True)
-                        logger.info("Automatically enabled RAG system after successful embedding")
-                    
                     # Log progress
                     logger.info(f"Fetched {batch_articles} articles, total: {fetch_process['count']}")
                     
@@ -604,6 +638,23 @@ def run_search_fetch(query, duration, form_data):
                 import traceback
                 logger.error(f"Traceback: {traceback.format_exc()}")
                 time.sleep(5)  # Wait a bit longer after an error
+        
+        # Auto-enable RAG if we successfully fetched articles and it's not already enabled
+        try:
+            if fetch_process["count"] > 0:
+                current_rag_state = controller.get_rag_enabled()["state"]
+                
+                if not current_rag_state:
+                    # Check if we have documents in the index
+                    system_info = controller.get_system_info()
+                    if (system_info.get("rag_index_loaded", False) and 
+                        system_info.get("index_stats", {}).get("document_count", 0) > 0):
+                        
+                        controller.set_rag_enabled(True)
+                        logger.info("Auto-enabled RAG after successful article fetching and indexing")
+                        
+        except Exception as e:
+            logger.warning(f"Could not auto-enable RAG: {str(e)}")
         
         # Mark as completed
         fetch_process["status"] = "completed" if not fetch_process["cancel_requested"] else "cancelled"
@@ -643,10 +694,9 @@ def run_search_fetch(query, duration, form_data):
             "error": str(e),
             "status": "error"
         }
-    
 
 def process_urls(url_list, form_data):
-    """Process the given URLs to fetch articles and embed them directly."""
+    """Process the given URLs to fetch articles and embed them directly with auto-enable RAG."""
     global controller, fetch_process
     
     logger.info(f"Processing {len(url_list)} URLs with direct embedding")
@@ -695,16 +745,6 @@ def process_urls(url_list, form_data):
                         if can_embed and current_system_info.get("rag_index_loaded", False):
                             successfully_processed += 1
                             fetch_process["embedded_count"] = fetch_process.get("embedded_count", 0) + 1
-                            
-                            # Enable RAG if not already enabled
-                            rag_state = controller.get_rag_enabled()
-                            if not rag_state["state"]:
-                                # Save original state if this is the first time
-                                if not fetch_process.get("rag_was_enabled", False):
-                                    fetch_process["rag_was_enabled"] = rag_state["state"]
-                                
-                                controller.set_rag_enabled(True)
-                                logger.info("Automatically enabled RAG system after successful embedding")
                         else:
                             # Log if embedding wasn't possible
                             if not can_embed:
@@ -726,6 +766,23 @@ def process_urls(url_list, form_data):
                 import traceback
                 logger.error(f"Traceback: {traceback.format_exc()}")
         
+        # Auto-enable RAG if we successfully processed URLs and it's not already enabled
+        try:
+            if successfully_processed > 0:
+                current_rag_state = controller.get_rag_enabled()["state"]
+                
+                if not current_rag_state:
+                    # Check if we have documents in the index
+                    system_info = controller.get_system_info()
+                    if (system_info.get("rag_index_loaded", False) and 
+                        system_info.get("index_stats", {}).get("document_count", 0) > 0):
+                        
+                        controller.set_rag_enabled(True)
+                        logger.info("Auto-enabled RAG after successful URL processing and indexing")
+                        
+        except Exception as e:
+            logger.warning(f"Could not auto-enable RAG: {str(e)}")
+        
         logger.info(f"Completed processing {len(url_list)} URLs. Successfully embedded: {successfully_processed}, Embedding failures: {embedding_failures}")
         
         # If no search query and all URLs processed, mark as completed
@@ -744,8 +801,6 @@ def process_urls(url_list, form_data):
         fetch_process["status"] = "error"
         fetch_process["end_time"] = time.time()
         fetch_process["active"] = False
-
-
 
 @app.route('/fetch_status', methods=['GET'])
 def fetch_status():
@@ -805,7 +860,6 @@ def fetch_status():
         "rag_enabled": controller.rag_enabled if hasattr(controller, "rag_enabled") else False
     })
 
-
 @app.route('/cancel_fetch', methods=['POST'])
 def cancel_fetch():
     """Cancel the current fetch process"""
@@ -828,7 +882,6 @@ def cancel_fetch():
         "success": True,
         "message": fetch_process["message"]
     })
-
 
 def finish_fetch_process(status="completed"):
     """Properly finish the fetch process, updating status and restoring settings if needed."""
@@ -866,19 +919,6 @@ def finish_fetch_process(status="completed"):
             logger.info("Final index save completed")
         except Exception as e:
             logger.error(f"Error during final index save: {e}")
-    
-    # Option to restore previous RAG state
-    # Uncomment the following if you want to restore the previous RAG state
-    """
-    if fetch_process.get("embedded_count", 0) > 0 and "rag_was_enabled" in fetch_process:
-        # We only restore the previous state if the setting was automatically changed
-        # and if RAG was originally disabled
-        original_state = fetch_process.get("rag_was_enabled", True)
-        if not original_state and controller.rag_enabled:
-            # Don't automatically disable RAG if we embedded articles
-            # Let the user make that decision
-            logger.info("Keeping RAG enabled after embedding articles")
-    """
     
 if __name__ == '__main__':
     logger.info("Starting Cloud LLM Model system")

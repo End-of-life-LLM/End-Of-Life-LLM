@@ -258,10 +258,32 @@
             margin-left: 10px;
         }
 
-        /* Additional styling for clear UI organization */
         .section-divider {
             border-top: 1px solid #ddd;
             margin: 30px 0;
+        }
+
+        .rag-status-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .rag-active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .rag-pending {
+            background-color: #ff9800;
+            color: white;
         }
 
         /* Responsive design adjustments */
@@ -280,7 +302,6 @@
                 flex-direction: column;
             }
             
-            /* Fix for timer controls */
             .timer-header {
                 flex-direction: column;
                 align-items: stretch;
@@ -295,6 +316,9 @@
 
 <body>
     <h1>API Settings</h1>
+
+    <!-- RAG Status Indicator -->
+    <div id="ragStatusIndicator" class="rag-status-indicator"></div>
 
     <div class="settings-card">
         <h2>API Configuration</h2>
@@ -355,6 +379,7 @@
         </div>
         <button type="button" id="uploadButton">Upload & Index Files</button>
     </div>
+    
     <div class="settings-card">
         <h2>Article Fetching</h2>
         <div class="form-group">
@@ -427,6 +452,42 @@
         let fetchEndTime = null;
         let isFetching = false;
         let fetchedArticlesCount = 0;
+
+        // RAG status tracking
+        let ragEnabled = false;
+        let systemInfo = {};
+
+        // Load system info and update RAG status
+        function loadSystemInfo() {
+            fetch('/system_info')
+                .then(response => response.json())
+                .then(data => {
+                    systemInfo = data;
+                    ragEnabled = data.rag_enabled;
+                    updateRAGStatusIndicator();
+                })
+                .catch(error => {
+                    console.error('Error loading system info:', error);
+                });
+        }
+
+        // Update RAG status indicator
+        function updateRAGStatusIndicator() {
+            const indicator = document.getElementById('ragStatusIndicator');
+            
+            if (ragEnabled && systemInfo.rag_index_loaded) {
+                const docCount = systemInfo.index_stats?.document_count || 0;
+                indicator.textContent = `RAG Active (${docCount} docs)`;
+                indicator.className = 'rag-status-indicator rag-active';
+                indicator.style.display = 'block';
+            } else if (ragEnabled && !systemInfo.rag_index_loaded) {
+                indicator.textContent = 'RAG Enabled (No docs)';
+                indicator.className = 'rag-status-indicator rag-pending';
+                indicator.style.display = 'block';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
 
         // Update timer display with appropriate formatting
         function updateTimerDisplay(seconds) {
@@ -501,6 +562,26 @@
             } else {
                 statusEl.textContent = `Fetch process completed. ${fetchedArticlesCount} articles were fetched.`;
                 statusEl.className = "status-message success";
+                
+                // Show RAG activation message if articles were fetched
+                if (fetchedArticlesCount > 0) {
+                    setTimeout(() => {
+                        const ragMessage = document.createElement('div');
+                        ragMessage.className = 'status-message success';
+                        ragMessage.innerHTML = `
+                            <strong>💡 RAG System May Be Activated!</strong><br>
+                            Your articles have been indexed. Check the chat interface - RAG may have been automatically enabled.
+                        `;
+                        statusEl.parentNode.insertBefore(ragMessage, statusEl.nextSibling);
+                        
+                        // Remove after 8 seconds
+                        setTimeout(() => {
+                            if (ragMessage.parentNode) {
+                                ragMessage.remove();
+                            }
+                        }, 8000);
+                    }, 2000);
+                }
             }
             statusEl.style.display = "block";
             
@@ -508,6 +589,10 @@
             setTimeout(() => {
                 document.getElementById("timerContainer").style.display = "none";
             }, 3000);
+            
+            // Refresh system info and file list
+            loadSystemInfo();
+            fetchIndexedFiles();
             
             console.log("Fetch process stopped. Cancelled:", wasCancelled);
         }
@@ -556,9 +641,6 @@
                     // Check if process has completed or was cancelled
                     if (data.status === 'completed' || data.status === 'cancelled' || !data.active) {
                         stopFetchProcess(data.status === 'cancelled');
-                        
-                        // Refresh the indexed files
-                        fetchIndexedFiles();
                     }
                 } else {
                     console.error("Error checking fetch status:", data);
@@ -699,8 +781,9 @@
                         statusEl.textContent = data.message || `File "${filename}" deleted successfully.`;
                         statusEl.className = "status-message success";
                         
-                        // Refresh the files list
+                        // Refresh the files list and system info
                         fetchIndexedFiles();
+                        loadSystemInfo();
                     } else {
                         // Display error message
                         statusEl.textContent = data.error || "Error deleting file.";
@@ -722,6 +805,12 @@
 
         // Add event listeners
         document.addEventListener("DOMContentLoaded", function() {
+            // Load system info initially
+            loadSystemInfo();
+            
+            // Refresh system info periodically
+            setInterval(loadSystemInfo, 30000); // Every 30 seconds
+            
             // Update sliders and their displayed values
             document.getElementById("temperature").addEventListener("input", function () {
                 settings.temperature = parseFloat(this.value);
@@ -826,6 +915,7 @@
             // Refresh files button
             document.getElementById("refreshFilesButton").addEventListener("click", function() {
                 fetchIndexedFiles();
+                loadSystemInfo();
             });
 
             // Fetch Articles Button
@@ -879,9 +969,6 @@
                             fetchedArticlesCount = data.count || 0;
                             document.getElementById("fetchedCount").textContent = fetchedArticlesCount;
                             stopFetchProcess();
-                            
-                            // Refresh the indexed files
-                            fetchIndexedFiles();
                         }
                     } else {
                         // There was an error
@@ -966,6 +1053,9 @@
                             document.getElementById("fileCountSummary").textContent = "No files indexed";
                             document.getElementById("totalFilesCount").textContent = "0";
                             document.getElementById("deleteAllFilesButton").style.display = 'none';
+                            
+                            // Refresh system info
+                            loadSystemInfo();
                         } else {
                             // Display error message
                             statusEl.textContent = data.error || "Error deleting files.";
@@ -1018,7 +1108,13 @@
                 
                 if (data.success) {
                     // Show success message
-                    statusEl.textContent = "Settings saved successfully.";
+                    let successMsg = "Settings saved successfully.";
+                    
+                    if (data.rag_auto_enabled) {
+                        successMsg += " RAG has been automatically enabled!";
+                    }
+                    
+                    statusEl.textContent = successMsg;
                     statusEl.className = "status-message success";
                     statusEl.style.display = "block";
 
@@ -1032,6 +1128,9 @@
                         fetchDuration: parseInt(document.getElementById("fetchDuration").value),
                         searchQuery: document.getElementById("searchQuery").value
                     }));
+
+                    // Refresh system info
+                    loadSystemInfo();
 
                     console.log("Settings saved successfully");
                 } else {
@@ -1089,16 +1188,44 @@
                 document.getElementById("uploadButton").disabled = false;
                 
                 if (data.success) {
-                    // Show success message
-                    statusEl.textContent = `Successfully uploaded and indexed ${fileInput.files.length} file(s).`;
+                    // Show success message with RAG info
+                    let successMsg = `Successfully uploaded and indexed ${fileInput.files.length} file(s).`;
+                    
+                    if (data.rag_auto_enabled) {
+                        successMsg += " RAG has been automatically enabled!";
+                    }
+                    
+                    statusEl.textContent = successMsg;
                     statusEl.className = "status-message success";
                     
                     // Reset file input
                     fileInput.value = "";
                     document.getElementById("fileCount").textContent = "0";
                     
-                    // Refresh indexed files list
+                    // Refresh indexed files list and system info
                     fetchIndexedFiles();
+                    loadSystemInfo();
+                    
+                    // Show additional message about RAG if it was auto-enabled
+                    if (data.rag_auto_enabled) {
+                        setTimeout(() => {
+                            const ragMessage = document.createElement('div');
+                            ragMessage.className = 'status-message success';
+                            ragMessage.innerHTML = `
+                                <strong>💡 RAG System Activated!</strong><br>
+                                Your documents are now available for intelligent Q&A. 
+                                Return to the chat to ask questions about your uploaded content.
+                            `;
+                            statusEl.parentNode.insertBefore(ragMessage, statusEl.nextSibling);
+                            
+                            // Remove after 8 seconds
+                            setTimeout(() => {
+                                if (ragMessage.parentNode) {
+                                    ragMessage.remove();
+                                }
+                            }, 8000);
+                        }, 2000);
+                    }
                 } else {
                     // Show error message
                     statusEl.textContent = data.error || "Error uploading files.";
@@ -1186,7 +1313,8 @@
             // Initialize timer display
             updateTimerDisplay(settings.fetchDuration * 60);
             
-            // Fetch indexed files
+            // Load system info and fetch indexed files
+            loadSystemInfo();
             fetchIndexedFiles();
             
             // Check for active fetch process

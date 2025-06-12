@@ -120,7 +120,6 @@ class Controller:
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return False
-        
 
     def _load_existing_vector_index(self) -> bool:
         """
@@ -166,6 +165,35 @@ class Controller:
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return False
+
+    def _should_use_rag_by_default(self) -> bool:
+        """
+        Determine if RAG should be used by default based on available documents.
+        
+        Returns:
+            bool: True if RAG should be used, False otherwise
+        """
+        try:
+            # Check if RAG is explicitly enabled
+            if self.rag_enabled:
+                return True
+                
+            # Check if we have indexed documents available
+            if (self.rag_controller and 
+                self.rag_controller.is_loaded() and 
+                self.rag_controller.get_index_stats().get("document_count", 0) > 0):
+                
+                # Auto-enable RAG if we have documents but RAG is not enabled
+                logger.info("Auto-enabling RAG because indexed documents are available")
+                self.set_rag_enabled(True)
+                return True
+                
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error checking RAG availability: {str(e)}")
+            return False
+    
     #----------------------------------------------------------------------
     # Chat session management methods (now using FileManager)
     #----------------------------------------------------------------------
@@ -316,7 +344,7 @@ class Controller:
     
     def process_message(self, user_message: str, session_id: Optional[str] = None) -> Union[Dict[str, Any], Tuple[Dict[str, Any], int]]:
         """
-        Process a user message and return AI response.
+        Process a user message and return AI response with improved RAG integration.
         
         Args:
             user_message: The message from the user
@@ -338,14 +366,15 @@ class Controller:
         # Add user message to history
         session_data['messages'].append({"role": "user", "content": user_message})
         
-        # Determine if we should use RAG based on toggle state and command prefix
-        use_rag = self.rag_enabled
+        # Determine if we should use RAG 
+        use_rag = self._should_use_rag_by_default()
         processed_message = user_message
         
         # Check for /chat prefix to bypass RAG
         if user_message.lower().startswith('/chat'):
             use_rag = False
             processed_message = user_message[5:].strip()  # Remove the /chat command
+            logger.info("User explicitly bypassed RAG with /chat command")
         
         # Process the message
         try:
@@ -354,6 +383,15 @@ class Controller:
             
             # Configure model temperature
             self.model.temperature = settings.get('temperature', DEFAULT_SETTINGS['temperature'])
+            
+            # Log which processing method will be used
+            if use_rag:
+                doc_count = 0
+                if self.rag_controller and self.rag_controller.is_loaded():
+                    doc_count = self.rag_controller.get_index_stats().get("document_count", 0)
+                logger.info(f"Processing message with RAG system ({doc_count} documents available)")
+            else:
+                logger.info("Processing message with standard model (RAG disabled or no documents)")
             
             # Determine whether to use RAG or standard model
             if use_rag and self.rag_controller and self.rag_controller.is_loaded():
@@ -432,7 +470,6 @@ class Controller:
         response = self._add_source_information(response, rag_response)
         
         return response
-    
 
     def _add_source_information(self, response: str, rag_response: Dict[str, Any]) -> str:
         """
@@ -479,7 +516,6 @@ class Controller:
             response += "\n\nSources: " + ", ".join(unique_sources)
         
         return response
-    
 
     def get_rag_enabled(self) -> Dict[str, bool]:
         """
@@ -544,6 +580,7 @@ class Controller:
             "image_analysis_capable": image_analysis_capable,
             "version": "1.0.0"  # Add version information
         }
+
     def get_indexed_files(self, session_id: Optional[str] = None) -> Union[Dict[str, Any], Tuple[Dict[str, Any], int]]:
         """
         Get a list of all indexed files for the current session.
@@ -595,11 +632,10 @@ class Controller:
                 "success": False,
                 "error": str(e)
             }, 500
-        
 
     def save_api_settings(self, form_data: Dict[str, Any], uploaded_files: List[Any]) -> Dict[str, Any]:
         """
-        Save API settings, handle file uploads, and process article searches/URLs.
+        Save API settings, handle file uploads, and process article searches/URLs with auto RAG enabling.
         
         Args:
             form_data: Dictionary containing form data
@@ -827,8 +863,9 @@ class Controller:
                                         # Index the article
                                         chunks = self.rag_controller.index_text_file(article['filepath'])
                                         logger.info(f"Indexed {chunks} chunks from article: {article['title']}")
-                                
-                                # Save the updated index after processing all articles
+                            
+                            # Save the updated index after processing all articles
+                            if self.rag_controller:
                                 self.rag_controller.save_index('vector_index')
                             
                             # Add to search results
@@ -912,13 +949,45 @@ class Controller:
             # Save the updated session
             self.file_manager.save_chat_to_disk(session_data['id'], session_data)
 
+            # Check if we should auto-enable RAG due to newly indexed content
+            should_auto_enable = False
+            
+            # Check if files were successfully processed
+            if result_files and any(f.get('success', False) for f in result_files):
+                should_auto_enable = True
+                
+            # Check if search results were successful
+            if search_results and any('articles' in r and r['articles'] > 0 for r in search_results):
+                should_auto_enable = True
+                
+            # Check if URLs were successfully processed
+            if url_results and any(r.get('success', False) for r in url_results):
+                should_auto_enable = True
+            
+            # Auto-enable RAG if content was indexed and RAG is not already enabled
+            rag_auto_enabled = False
+            if should_auto_enable and not self.get_rag_enabled()["state"]:
+                try:
+                    # Verify we actually have documents in the index
+                    if (self.rag_controller and 
+                        self.rag_controller.is_loaded() and 
+                        self.rag_controller.get_index_stats().get("document_count", 0) > 0):
+                        
+                        self.set_rag_enabled(True)
+                        rag_auto_enabled = True
+                        logger.info("Auto-enabled RAG after successful document indexing")
+                        
+                except Exception as e:
+                    logger.warning(f"Could not auto-enable RAG: {str(e)}")
+
             # Return success response
             return {
                 "success": True,
                 "session_id": session_data['id'],
                 "files": result_files,
                 "search_results": search_results,
-                "url_results": url_results
+                "url_results": url_results,
+                "rag_auto_enabled": rag_auto_enabled
             }
             
         except Exception as e:
