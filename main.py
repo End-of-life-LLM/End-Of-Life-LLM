@@ -425,7 +425,7 @@ def fetch_articles():
     urls = request.form.get('urls', '').strip()
     fetch_duration = int(request.form.get('fetchDuration', 5))
     
-    # Get max articles - use a much higher default than before
+    # Get max articles
     max_articles = int(request.form.get('maxArticlesPerQuery', 100))
     
     # Validate inputs
@@ -435,42 +435,73 @@ def fetch_articles():
             "message": "Please provide either a search query or URLs to fetch articles."
         })
     
-    # Parse URLs - don't limit the number of URLs to process
+    # Parse URLs
     url_list = []
     if urls:
         url_list = [url.strip() for url in urls.split('\n') if url.strip()]
     
-    # Get current session - needed for file tracking
+    # Get current session
     session_id = request.form.get('session_id') or session.get('session_id')
     session_data = controller.get_or_create_session(session_id)
     
-    # Check if API key is available for embedding
-    if not controller.api_key:
-        api_key = None
-        # Try to get API key from session if available
+    # Get API key from form or session
+    api_key = request.form.get('apiKey')
+    if api_key:
+        controller.api_key = api_key
+        # Save to session
+        session_data['settings']['apiKey'] = api_key
+        controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
+    elif not controller.api_key:
+        # Try to get from session
         if 'settings' in session_data and 'apiKey' in session_data['settings']:
             api_key = session_data['settings']['apiKey']
-            
-        # If we found a key in the session, update the controller
-        if api_key:
-            logger.info("Using API key from session for embedding")
-            controller.api_key = api_key
+            if api_key:
+                controller.api_key = api_key
     
-    # Check if we can embed by getting system info
+    # Check if we have API key
+    if not controller.api_key:
+        return jsonify({
+            "success": False,
+            "message": "API key is required for article embedding. Please provide an API key."
+        })
+    
+    # Initialize components if needed
+    if not controller.model or not controller.rag_controller:
+        logger.info("Initializing components for article fetching")
+        success = controller.initialize_components(controller.api_key)
+        if not success:
+            return jsonify({
+                "success": False,
+                "message": "Failed to initialize AI components. Please check your API key."
+            })
+    
+    # Ensure RAG controller is properly set up
+    if controller.rag_controller:
+        # Check if vector store exists
+        if not hasattr(controller.rag_controller, 'vector_store') or controller.rag_controller.vector_store is None:
+            logger.info("Creating new vector store")
+            from Cloud_LLM_Model.RAG.Retrieval.vector_store import Vector_Store
+            controller.rag_controller.vector_store = Vector_Store(dimension=controller.rag_controller.embedding_service.dimension)
+        
+        # Load or create index
+        if not controller.rag_controller.is_loaded():
+            if os.path.exists('vector_index'):
+                logger.info("Loading existing vector index")
+                controller.rag_controller.load_index('vector_index')
+            else:
+                logger.info("Creating new vector index")
+                os.makedirs('vector_index', exist_ok=True)
+                controller.rag_controller.save_index('vector_index')
+    
+    # Get system info
     system_info = controller.get_system_info()
-    can_embed = system_info.get("api_key_set", False) and system_info.get("model_initialized", False)
+    can_embed = (
+        system_info.get("api_key_set", False) and 
+        system_info.get("model_initialized", False) and
+        system_info.get("rag_controller_initialized", False)
+    )
     
-    # If not initialized but API key is available, initialize components
-    if controller.api_key and not system_info.get("model_initialized", False):
-        try:
-            controller.initialize_components(controller.api_key)
-            # Update system info and embedding capability
-            system_info = controller.get_system_info()
-            can_embed = system_info.get("model_initialized", False)
-            logger.info("Initialized components with API key")
-        except Exception as e:
-            logger.error(f"Failed to initialize components: {str(e)}")
-            can_embed = False
+    logger.info(f"Starting fetch process. Can embed: {can_embed}")
     
     # Initialize fetch process
     fetch_process = {
@@ -511,8 +542,13 @@ def fetch_articles():
         "duration": fetch_duration,
         "max_articles": max_articles,
         "embedding_enabled": can_embed,
-        "urls_count": len(url_list) if url_list else 0
+        "urls_count": len(url_list) if url_list else 0,
+        "debug_info": {
+            "rag_loaded": controller.rag_controller.is_loaded() if controller.rag_controller else False,
+            "vector_store_exists": hasattr(controller.rag_controller, 'vector_store') and controller.rag_controller.vector_store is not None if controller.rag_controller else False
+        }
     })
+
 
 def run_search_fetch(query, duration, form_data):
     """Run the search-based article fetch process with direct embedding and auto-enable RAG."""
@@ -553,29 +589,67 @@ def run_search_fetch(query, duration, form_data):
         end_time = time.time() + (duration * 60)
         
         # Maximum number of articles to fetch
-        max_articles = fetch_process.get("max_articles", 3)
+        max_articles = fetch_process.get("max_articles", 100)
         
-        # Ensure API key is available and components are initialized
+        # Ensure API key is available
         if not controller.api_key:
-            logger.error("API key not set, cannot perform search fetch")
-            return {
-                "success": False,
-                "error": "API key not set",
-                "status": "error"
-            }
+            # Try to get from session
+            if 'settings' in session_data and 'apiKey' in session_data['settings']:
+                api_key = session_data['settings']['apiKey']
+                if api_key:
+                    controller.api_key = api_key
+                    logger.info("Using API key from session")
             
-        # Initialize components if needed
-        if not controller.get_system_info()["model_initialized"]:
-            controller.initialize_components(controller.api_key)
+            if not controller.api_key:
+                logger.error("API key not set, cannot perform search fetch")
+                fetch_process["status"] = "error"
+                fetch_process["end_time"] = time.time()
+                fetch_process["running"] = False
+                return {
+                    "success": False,
+                    "error": "API key not set",
+                    "status": "error"
+                }
         
-        # Load existing vector index if not already loaded
-        if not controller.get_system_info()["rag_index_loaded"]:
-            controller._load_existing_vector_index()
+        # Initialize components if needed
+        if not controller.model or not controller.rag_controller:
+            logger.info("Initializing components with API key")
+            success = controller.initialize_components(controller.api_key)
+            if not success:
+                logger.error("Failed to initialize components")
+                fetch_process["status"] = "error"
+                fetch_process["end_time"] = time.time()
+                fetch_process["running"] = False
+                return {
+                    "success": False,
+                    "error": "Failed to initialize components",
+                    "status": "error"
+                }
+        
+        # Ensure RAG controller has a vector store
+        if controller.rag_controller:
+            if not hasattr(controller.rag_controller, 'vector_store') or controller.rag_controller.vector_store is None:
+                logger.info("Initializing vector store")
+                from Cloud_LLM_Model.RAG.Retrieval.vector_store import Vector_Store
+                controller.rag_controller.vector_store = Vector_Store(dimension=controller.rag_controller.embedding_service.dimension)
+            
+            # Try to load existing index or create new one
+            if not controller.rag_controller.is_loaded():
+                logger.info("Loading or creating vector index")
+                if os.path.exists('vector_index'):
+                    controller.rag_controller.load_index('vector_index')
+                else:
+                    # Create directory and save empty index
+                    os.makedirs('vector_index', exist_ok=True)
+                    controller.rag_controller.save_index('vector_index')
         
         # Initialize counters for logging
         successfully_fetched = 0
         successfully_embedded = 0
         embedding_failures = 0
+        
+        # Track already processed URLs to avoid duplicates
+        processed_urls = set()
         
         # Continue fetching until time's up or cancelled
         while time.time() < end_time and not fetch_process["cancel_requested"]:
@@ -585,63 +659,121 @@ def run_search_fetch(query, duration, form_data):
                     logger.info(f"Reached maximum number of articles ({max_articles})")
                     break
                 
-                # Set time limit for this batch (remaining time or 120 seconds, whichever is less)
+                # Set time limit for this batch
                 time_remaining = max(1, int(end_time - time.time()))
                 batch_time_limit = min(120, time_remaining)
                 
-                # Use save_api_settings method to process search queries
-                search_form = {
-                    'session_id': session_id,
-                    'searchQueries': query,
-                    'maxArticlesPerQuery': max_articles - fetch_process["count"],
-                    'numberOfFiles': max_articles
-                }
+                # Calculate how many articles we still need
+                articles_needed = min(10, max_articles - fetch_process["count"])
                 
-                # Process the search query using the global controller
-                batch_result = controller.save_api_settings(search_form, [])
+                # Check if article controller exists
+                if not controller.article_controller:
+                    logger.error("Article controller not initialized")
+                    break
                 
-                # Check for success and process results
-                if batch_result.get('success') and 'search_results' in batch_result:
-                    search_results = batch_result['search_results']
+                logger.info(f"Searching for articles with query: {query}, max results: {articles_needed}")
+                
+                # Fetch articles
+                batch_results = controller.article_controller.fetch_and_save_related_articles(
+                    query=query,
+                    save_format='file',
+                    time_limit_seconds=batch_time_limit
+                )
+                
+                if batch_results:
+                    logger.info(f"Fetched {len(batch_results)} articles in this batch")
                     
-                    # Calculate number of articles fetched in this batch
-                    batch_articles = 0
-                    for result in search_results:
-                        if 'articles' in result:
-                            batch_articles += result['articles']
+                    # Process each fetched article
+                    for article in batch_results:
+                        try:
+                            # Skip if already processed
+                            if article['url'] in processed_urls:
+                                continue
+                            
+                            processed_urls.add(article['url'])
+                            
+                            if 'filepath' in article and article['filepath']:
+                                # Get the filename
+                                filename = os.path.basename(article['filepath'])
+                                
+                                # Add to session's indexed files
+                                if filename not in session_data.get('indexed_files', []):
+                                    if 'indexed_files' not in session_data:
+                                        session_data['indexed_files'] = []
+                                    session_data['indexed_files'].append(filename)
+                                
+                                # Update fetched count
+                                fetch_process["count"] += 1
+                                successfully_fetched += 1
+                                
+                                # Now index the article
+                                if controller.rag_controller:
+                                    try:
+                                        logger.info(f"Indexing article: {article['title']} from {article['filepath']}")
+                                        
+                                        # Use the RAG controller to index the file
+                                        chunks = controller.rag_controller.index_text_file(article['filepath'])
+                                        
+                                        if chunks > 0:
+                                            logger.info(f"Successfully indexed {chunks} chunks from article: {article['title']}")
+                                            fetch_process["embedded_count"] += 1
+                                            successfully_embedded += 1
+                                        else:
+                                            logger.warning(f"No chunks indexed from article: {article['title']}")
+                                            fetch_process["embedding_failures"] += 1
+                                            embedding_failures += 1
+                                            
+                                    except Exception as e:
+                                        logger.error(f"Error indexing article {article['title']}: {str(e)}")
+                                        import traceback
+                                        logger.error(f"Traceback: {traceback.format_exc()}")
+                                        fetch_process["embedding_failures"] += 1
+                                        embedding_failures += 1
+                                else:
+                                    logger.error("RAG controller not available for indexing")
+                                    fetch_process["embedding_failures"] += 1
+                                    embedding_failures += 1
+                            
+                        except Exception as e:
+                            logger.error(f"Error processing article: {str(e)}")
+                            import traceback
+                            logger.error(f"Traceback: {traceback.format_exc()}")
                     
-                    # Update counters
-                    fetch_process["count"] += batch_articles
-                    successfully_fetched += batch_articles
+                    # Save the RAG index after processing batch
+                    if controller.rag_controller and successfully_embedded > 0:
+                        try:
+                            controller.rag_controller.save_index('vector_index')
+                            logger.info(f"Saved index after embedding articles in this batch")
+                        except Exception as e:
+                            logger.error(f"Error saving index: {str(e)}")
                     
-                    # Get indexed files after the operation
-                    indexed_files = controller.get_indexed_files(session_id)
+                    # Save session data
+                    controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
                     
-                    # Log progress
-                    logger.info(f"Fetched {batch_articles} articles, total: {fetch_process['count']}")
-                    
-                    # If no articles were found in this batch, we might have exhausted results
-                    if batch_articles == 0:
-                        logger.info("Search appears to have exhausted all available results")
-                        break
                 else:
-                    # Log error and continue
-                    logger.warning("Failed to fetch articles in this batch")
-                    if 'error' in batch_result:
-                        logger.warning(f"Error details: {batch_result['error']}")
-                    
-                # Add a small delay between fetches to avoid rate limiting
-                time.sleep(3)  # 3 seconds between fetches
+                    logger.info("No new articles found in this batch")
+                    time.sleep(10)
+                
+                # Add a delay between batches
+                time.sleep(3)
                 
             except Exception as e:
                 logger.error(f"Error in search fetch iteration: {str(e)}")
                 import traceback
                 logger.error(f"Traceback: {traceback.format_exc()}")
-                time.sleep(5)  # Wait a bit longer after an error
+                time.sleep(5)
         
-        # Auto-enable RAG if we successfully fetched articles and it's not already enabled
+        # Final save of the index
+        if controller.rag_controller and successfully_embedded > 0:
+            try:
+                controller.rag_controller.save_index('vector_index')
+                logger.info("Final save of vector index completed")
+            except Exception as e:
+                logger.error(f"Error in final index save: {str(e)}")
+        
+        # Auto-enable RAG if we successfully fetched and indexed articles
         try:
-            if fetch_process["count"] > 0:
+            if fetch_process["embedded_count"] > 0:
                 current_rag_state = controller.get_rag_enabled()["state"]
                 
                 if not current_rag_state:
@@ -664,15 +796,18 @@ def run_search_fetch(query, duration, form_data):
         # Get final system info
         final_stats = controller.get_system_info()
         
-        logger.info(f"Search fetch completed with status: {fetch_process['status']}, fetched {fetch_process['count']} articles")
+        logger.info(f"Search fetch completed with status: {fetch_process['status']}")
+        logger.info(f"Total fetched: {fetch_process['count']}, embedded: {fetch_process['embedded_count']}, failures: {fetch_process['embedding_failures']}")
         
-        # Save the session one final time to ensure all indexed files are saved
+        # Save the session one final time
         controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
         
         return {
             "success": True,
             "status": fetch_process["status"],
             "count": fetch_process["count"],
+            "embedded_count": fetch_process["embedded_count"],
+            "embedding_failures": fetch_process["embedding_failures"],
             "duration": round((fetch_process["end_time"] - fetch_process["start_time"]) / 60, 1),
             "rag_enabled": controller.get_rag_enabled()["state"],
             "indexed_files": len(controller.get_indexed_files(session_id).get('files', [])),
@@ -694,7 +829,7 @@ def run_search_fetch(query, duration, form_data):
             "error": str(e),
             "status": "error"
         }
-
+    
 def process_urls(url_list, form_data):
     """Process the given URLs to fetch articles and embed them directly with auto-enable RAG."""
     global controller, fetch_process
@@ -714,6 +849,11 @@ def process_urls(url_list, form_data):
         system_info = controller.get_system_info()
         can_embed = system_info.get("api_key_set", False) and system_info.get("model_initialized", False)
         
+        # Ensure RAG controller is initialized and loaded
+        if can_embed and controller.rag_controller:
+            if not controller.rag_controller.is_loaded():
+                controller._load_existing_vector_index()
+        
         for i, url in enumerate(url_list):
             if fetch_process["cancel_requested"]:
                 logger.info("URL processing cancelled")
@@ -722,41 +862,67 @@ def process_urls(url_list, form_data):
             logger.info(f"Processing URL {i+1}/{len(url_list)}: {url}")
             
             try:
-                # Use save_api_settings to process the URL
-                url_form_data = {
-                    'session_id': session_id,
-                    'urls': url
-                }
-                
-                # Process the URL using controller's save_api_settings method
-                result = controller.save_api_settings(url_form_data, [])
-                
-                # Check if URL was processed successfully
-                if result.get('success') and 'url_results' in result:
-                    url_results = result['url_results']
+                # Use article controller to fetch the URL directly
+                if controller.article_controller:
+                    # Fetch the article content
+                    content = controller.article_controller.searcher.fetch_article(url)
                     
-                    # If we have results, increment counters
-                    if url_results and any(r.get('success', False) for r in url_results):
-                        # Increment count
-                        fetch_process["count"] += 1
+                    if content:
+                        # Extract title from URL if needed
+                        title = url.split('/')[-1].replace('-', ' ').replace('_', ' ')
+                        if '.' in title:
+                            title = title.split('.')[0]
                         
-                        # Check if embedding was successful by looking at system info
-                        current_system_info = controller.get_system_info()
-                        if can_embed and current_system_info.get("rag_index_loaded", False):
-                            successfully_processed += 1
-                            fetch_process["embedded_count"] = fetch_process.get("embedded_count", 0) + 1
-                        else:
-                            # Log if embedding wasn't possible
-                            if not can_embed:
+                        # Save the article
+                        filepath = controller.article_controller.saver.save_article(
+                            title=title,
+                            content=content,
+                            url=url,
+                            format='file'
+                        )
+                        
+                        if filepath:
+                            # Get the filename
+                            filename = os.path.basename(filepath)
+                            
+                            # Add to session's indexed files
+                            if filename not in session_data.get('indexed_files', []):
+                                if 'indexed_files' not in session_data:
+                                    session_data['indexed_files'] = []
+                                session_data['indexed_files'].append(filename)
+                            
+                            # Index the article if RAG controller is available
+                            if can_embed and controller.rag_controller and controller.rag_controller.is_loaded():
+                                try:
+                                    chunks = controller.rag_controller.index_text_file(filepath)
+                                    logger.info(f"Indexed {chunks} chunks from URL: {url}")
+                                    
+                                    # Save the index after indexing
+                                    controller.rag_controller.save_index('vector_index')
+                                    
+                                    successfully_processed += 1
+                                    fetch_process["embedded_count"] = fetch_process.get("embedded_count", 0) + 1
+                                except Exception as e:
+                                    logger.error(f"Error indexing article from {url}: {str(e)}")
+                                    embedding_failures += 1
+                                    fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
+                            else:
                                 logger.warning(f"Embedding not available for URL: {url}")
-                            embedding_failures += 1
-                            fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
+                                embedding_failures += 1
+                                fetch_process["embedding_failures"] = fetch_process.get("embedding_failures", 0) + 1
+                            
+                            # Increment count
+                            fetch_process["count"] += 1
+                            
+                            # Save session data
+                            controller.file_manager.save_chat_to_disk(session_data['id'], session_data)
+                        else:
+                            logger.warning(f"Failed to save article from URL: {url}")
                     else:
-                        logger.warning(f"Failed to process URL: {url}")
+                        logger.warning(f"No content fetched from URL: {url}")
                 else:
-                    # Log error details if available
-                    error_msg = result.get('error', 'Unknown error')
-                    logger.warning(f"Failed to process URL: {url}. Error: {error_msg}")
+                    logger.error("Article controller not available")
+                    break
                 
                 # Add a small delay between URLs to avoid rate limiting
                 time.sleep(1)
@@ -766,7 +932,7 @@ def process_urls(url_list, form_data):
                 import traceback
                 logger.error(f"Traceback: {traceback.format_exc()}")
         
-        # Auto-enable RAG if we successfully processed URLs and it's not already enabled
+        # Auto-enable RAG if we successfully processed and indexed URLs
         try:
             if successfully_processed > 0:
                 current_rag_state = controller.get_rag_enabled()["state"]
@@ -920,6 +1086,76 @@ def finish_fetch_process(status="completed"):
         except Exception as e:
             logger.error(f"Error during final index save: {e}")
     
+@app.route('/debug_rag_status', methods=['GET'])
+def debug_rag_status():
+    """Debug endpoint to check RAG system status"""
+    global controller
+    
+    debug_info = {
+        "controller_exists": controller is not None,
+        "api_key_set": bool(controller.api_key) if controller else False,
+        "model_initialized": False,
+        "rag_controller_initialized": False,
+        "rag_controller_loaded": False,
+        "vector_store_exists": False,
+        "vector_store_has_index": False,
+        "embedding_service_exists": False,
+        "article_controller_exists": False,
+        "vector_index_dir_exists": os.path.exists('vector_index'),
+        "tmp_dir_files": [],
+        "error_messages": []
+    }
+    
+    try:
+        if controller:
+            debug_info["model_initialized"] = controller.model is not None
+            debug_info["article_controller_exists"] = controller.article_controller is not None
+            
+            if controller.rag_controller:
+                debug_info["rag_controller_initialized"] = True
+                debug_info["rag_controller_loaded"] = controller.rag_controller.is_loaded()
+                
+                if hasattr(controller.rag_controller, 'vector_store'):
+                    debug_info["vector_store_exists"] = controller.rag_controller.vector_store is not None
+                    
+                    if controller.rag_controller.vector_store:
+                        debug_info["vector_store_has_index"] = (
+                            hasattr(controller.rag_controller.vector_store, 'index') and 
+                            controller.rag_controller.vector_store.index is not None
+                        )
+                        
+                        # Get vector store stats
+                        try:
+                            stats = controller.rag_controller.vector_store.get_stats()
+                            debug_info["vector_store_stats"] = stats
+                        except Exception as e:
+                            debug_info["error_messages"].append(f"Error getting vector store stats: {str(e)}")
+                
+                if hasattr(controller.rag_controller, 'embedding_service'):
+                    debug_info["embedding_service_exists"] = controller.rag_controller.embedding_service is not None
+                    
+                    if controller.rag_controller.embedding_service:
+                        debug_info["embedding_model"] = controller.rag_controller.embedding_service.embedding_model
+                        debug_info["embedding_dimension"] = controller.rag_controller.embedding_service.dimension
+            
+            # Check tmp directory
+            if hasattr(controller, 'file_manager') and controller.file_manager:
+                tmp_dir = controller.file_manager.tmp_dir
+                if os.path.exists(tmp_dir):
+                    debug_info["tmp_dir_files"] = os.listdir(tmp_dir)[:10]  # First 10 files
+            
+            # Check articles directory
+            if os.path.exists('articles'):
+                debug_info["articles_dir_files"] = len(os.listdir('articles'))
+                
+    except Exception as e:
+        debug_info["error_messages"].append(f"Error collecting debug info: {str(e)}")
+        import traceback
+        debug_info["error_messages"].append(traceback.format_exc())
+    
+    return jsonify(debug_info)
+
+
 if __name__ == '__main__':
     logger.info("Starting Cloud LLM Model system")
     
