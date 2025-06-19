@@ -1,0 +1,43 @@
+# Web Framework
+flask==2.3.3
+waitress==2.1.2
+werkzeug==2.3.7
+
+# OpenAI Integration
+openai==1.3.8
+tiktoken==0.5.1
+tenacity==8.2.3
+
+# RAG and Vector Processing
+numpy==1.24.3
+scikit-learn==1.3.0
+faiss-cpu==1.7.4
+sentence-transformers==2.2.2
+
+# Web Scraping
+requests==2.31.0
+beautifulsoup4==4.12.2
+urllib3==2.0.4
+lxml==4.9.3
+
+# PDF Processing
+PyMuPDF==1.23.3
+PyPDF2==3.0.1
+Pillow==10.0.0
+
+# Natural Language Processing
+nltk==3.8.1
+
+# Utilities
+python-dotenv==1.0.0
+cachetools==5.3.1
+python-dateutil==2.8.2
+
+# Data Processing
+pandas==2.0.3
+
+# Optional: Academic Search
+scholarly==1.7.11
+
+# Development and Debugging
+python-decouple==3.8

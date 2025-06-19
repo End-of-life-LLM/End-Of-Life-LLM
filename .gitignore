@@ -10,3 +10,4 @@ UI/package.json
 *.bin
 *.pkl 
 *.pdf
+!requirements.txt
